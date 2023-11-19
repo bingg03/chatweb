@@ -10,27 +10,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DAO {
-	public List<User> getAllUser(String user_name) {
+	public List<User> getFriend(String user_name) {
 		List<User> l = new ArrayList<>();
-		String query = "select * from user where username not in (?)";
-		//SELECT * FROM `user` WHERE username not in ('admin');
-
+		String query = "select * from friends where sender = ?";
+		String query2 = "select * from user where username = ?";
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/chat", "root", "");
 			PreparedStatement ps = con.prepareStatement(query);
 			ps.setString(1, user_name);
 			ResultSet rs = ps.executeQuery();
-
+			List<String> nameFriend = new ArrayList<>();
 			while (rs.next()) {
-				String username = rs.getString(1);
-				String password = rs.getString(2);
-				l.add(new User(username, password, "0"));
-
+				nameFriend.add(rs.getString(2));
+			}
+			for(String name : nameFriend) {
+				ps = con.prepareStatement(query2);
+				ps.setString(1, name);
+				rs = ps.executeQuery();
+				while (rs.next()) {
+					l.add(new User(rs.getString(1), rs.getString(2), rs.getString(3)));
+				}
 			}
 			return l;
+			
 		} catch (Exception e) {
-			// TODO: handle exception
+			
 		}
 		return null;
 	}
@@ -46,7 +51,7 @@ public class DAO {
 			ResultSet rs = ps.executeQuery();
 			
 			while (rs.next()) {
-				return new User(username, password, "1");
+				return new User(username, password, rs.getString(3));
 			}
 		} catch (Exception e) {
 			// TODO: handle exception
@@ -79,7 +84,7 @@ public class DAO {
 	
 	public static void main(String[] args) {
 		DAO dao = new DAO();
-		List<String> l = dao.getAllUserFromGroup("1");
-		for(String o : l) System.out.println(o);
+		List<User> list = dao.getFriend("admin");
+		for(User oUser : list) System.out.println(oUser);
 	}
 }

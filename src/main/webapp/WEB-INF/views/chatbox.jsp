@@ -19,6 +19,9 @@
 <body>
 
 	<p id="username" style="display: none">${user.username}</p>
+	<p id="userAvatar" style="display: none">
+		<c:url value="/files/${user.username}/${user.avatar}" />
+	</p>
 	
 	<div class="container">
 		<div class="conversation-container">
@@ -106,8 +109,8 @@
 							<li id=${friend.username} onclick="setReceiver(this);">
 								<div class="user-contain">
 									<div class="user-img">
-										<img id=""
-											src="https://www.kkday.com/vi/blog/wp-content/uploads/chup-anh-dep-bang-dien-thoai-25.jpg"
+										<img id="img-${friend.username}"
+											src="<c:url value="/files/${friend.username}/${friend.avatar}" />"
 											alt="Image of user">
 										<div id="status-${friend.username}" class="user-img-dot online"></div>
 									</div>

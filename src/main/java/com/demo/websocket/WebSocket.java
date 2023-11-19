@@ -14,6 +14,9 @@ import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 
 import com.demo.dao.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,60 +27,70 @@ public class WebSocket {
 	
 	@OnOpen
 	public void onOpen(Session session) {
-		System.out.println("NEW Connection with client: " + session.getId());
+		//System.out.println("NEW Connection with client: " + session.getId());
 		sessions.add(session);
-		// sessionIds.put(session, session.getId());
 	}
 
 	@OnClose
 	public void onClose(Session session) {
 		sessions.remove(session);
-		// sessionIds.remove(session);
 	}
 
 	@OnMessage
 	public void onMessage(String message, Session session) throws Exception {
 		System.out.println("Client " + session.getId() + ": " + message);
-		if (message.startsWith("#")) {
-			String username = message.substring(1).trim();
-			session.getUserProperties().put("username", username);
-			System.out.println("da gan '" + username + "' cho session " + session.getId());
-		} else if (message.startsWith("@")) {
-			String[] parts = message.substring(1).split(",");
-			String sender = parts[0].trim();
-			String receiver = parts[1].trim();
-			String messTosend = parts[2].trim();
+		if(isJson(message)) {
+			ObjectMapper objectMapper = new ObjectMapper();
+	        try {
+	            JsonNode jsonNode = objectMapper.readTree(message);
+	            
+	            String receiver = jsonNode.get("receiver").asText();
+	            String groupId = jsonNode.get("groupId").asText();
 
-			for (Session client : sessions) {
-				String receiver_name = (String) client.getUserProperties().get("username");
-				if (receiver_name != null && receiver_name.equals(receiver) && client.isOpen()) {
-					client.getBasicRemote().sendText(message);
-				}
-			}
-		} else if (message.startsWith("&")){
-			String[] parts = message.substring(1).split(",");
-			String sender = parts[0].trim();
-			String groupID = parts[1].trim();
-			String messTosend = parts[2].trim();
-			
-			DAO dao = new DAO();
-			List<String> userFromGroup = dao.getAllUserFromGroup(groupID);
-			String present_user = (String) session.getUserProperties().get("username");
-			//System.out.println(present_user + " " + message);
-			for(String receiver : userFromGroup) {
-				if(!receiver.equals(present_user)) {
-					for (Session client : sessions) {
-						String receiver_name = (String) client.getUserProperties().get("username");
+	            if(groupId != null) {
+	    			for (Session client : sessions) {
+	    				String receiver_name = (String) client.getUserProperties().get("username");
 						if (receiver_name != null && receiver_name.equals(receiver) && client.isOpen()) {
 							client.getBasicRemote().sendText(message);
 						}
-					}
-				}
-			}
+	    			}
+	            } else {
+	    			DAO dao = new DAO();
+	    			List<String> userFromGroup = dao.getAllUserFromGroup(groupId);
+	    			String present_user = (String) session.getUserProperties().get("username");
+	    	
+	    			for(String RECEIVER : userFromGroup) {
+	    				if(!RECEIVER.equals(present_user)) {
+	    					for (Session client : sessions) {
+	    						String receiver_name = (String) client.getUserProperties().get("username");
+	    						if (receiver_name != null && receiver_name.equals(RECEIVER) && client.isOpen()) {
+	    							client.getBasicRemote().sendText(message);
+	    						}
+	    					}
+	    				}
+	    			}
+	            }
+	            
+
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        }
 			
 			
 		} else {
-			
+			if (message.startsWith("#")) {
+				String username = message.substring(1).trim();
+				session.getUserProperties().put("username", username);
+			}
 		}
 	}
+	
+	private boolean isJson(String message) {
+        try {
+            return message.startsWith("{") && message.endsWith("}");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+	
 }

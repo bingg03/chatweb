@@ -30,30 +30,21 @@ var numberMember = 0;
 
 socket.onopen = function(event) {
 	username = document.getElementById("username").textContent;
+	userAvatar = document.getElementById("userAvatar").textContent;
 	console.log(username);
-	//???Chua lam avatar
-	var usernameElement = document.getElementById("username");
-	var usernameValue = usernameElement.innerText;
 
-	socket.send("#" + usernameValue);
+	socket.send("#" + username);
 };
 
 socket.onmessage = function(event) {
 	var message = event.data;
-	//console.log(sender_message);
-	
-	
-	if(message[0] === "&") {
-		console.log(message);
-		setMessageGroup(message.substring(1));
-		
-	} else if (message[0] === "@") {
-		console.log(message);
-		setMessage(message.substring(1));	
-	} else {
-		
+	console.log(message);
+	try {
+    	const messageJSON = JSON.parse(message);
+		setMessage(messageJSON);
+	} catch (error) {
+    	console.error('Error parsing JSON:', error);
 	}
-	
 };
 
 function cleanUp() {
@@ -63,20 +54,24 @@ function cleanUp() {
 }
 
 function setReceiver(element) {
+	groupId = null;
 	receiver = element.id;
+	receiverAvatar = document.getElementById('img-' + receiver).src;
 	console.log(receiver);
-	var status = 'online';
-
+	var status = '';
+	if (document.getElementById('status-' + receiver).classList.contains('online')) {
+		status = 'online';
+	}
+	
 	var rightSide = '<div class="user-contact">' + '<div class="back">'
 		+ '<i class="fa fa-arrow-left"></i>'
 		+ '</div>'
 		+ '<div class="user-contain">'
 		+ '<div class="user-img">'
-		+ '<img src="https://www.kkday.com/vi/blog/wp-content/uploads/chup-anh-dep-bang-dien-thoai-25.jpg" '
+		+ '<img src="' + receiverAvatar + '" '
 		+ 'alt="Image of user">'
 		+ '<div class="user-img-dot ' + status + '"></div>'
 		+ '</div>'
-		+ '<p id="usernameReceiver" style="display: none">' + receiver + '</p>'
 		+ '<div class="user-info">'
 		+ '<span class="user-name">' + receiver + '</span>'
 		+ '</div>'
@@ -102,7 +97,11 @@ function setReceiver(element) {
 		+ '</form>';
 
 	document.getElementById("receiver").innerHTML = rightSide;
+	
 	loadMessages();
+	
+	displayFiles();
+	
 	handleResponsive();
 
 }
@@ -122,7 +121,6 @@ function setGroup(element) {
 	fetch("http://localhost:3000" + "/conversations?id=" + groupId)
 		.then(data => data.json())
 		.then(data => {
-			//let findObject = data.find(element => element.username == username);
 			let isAdmin = false;
 			if(username === "admin") isAdmin = true;
 
@@ -150,7 +148,7 @@ function setGroup(element) {
 				+ '<ul id="chat" class="list-messages">'
 				+ '</ul>'
 				+ '</div>'
-				+ '<form class="form-send-message" onsubmit="return sendMessageGroup(event)">'
+				+ '<form class="form-send-message" onsubmit="return sendMessage(event)">'
 				+ '<ul class="list-file"></ul> '
 				+ '<input type="text" id="message" class="txt-input" placeholder="Type message...">'
 				+ '<label class="btn btn-image" for="attach"><i class="fa fa-file"></i></label>'
@@ -166,7 +164,7 @@ function setGroup(element) {
 
 			loadMessagesGroup();
 
-			//displayFiles();
+			displayFiles();
 
 			handleResponsive();
 		})
@@ -175,48 +173,23 @@ function setGroup(element) {
 
 function sendMessage(e) {
 	e.preventDefault();
-
-	var Receiver = document.getElementById('usernameReceiver');
-	var receiverName = Receiver.innerText;
-
-	var usernameElement = document.getElementById("username");
-	var sender = usernameElement.innerText;
-
-	var inputText = document.getElementById("message").value;
-	document.getElementById("message").value = '';
-	socket.send("@" + sender + "," + receiverName + "," + inputText);
-
-	setMessage(sender + "," + receiverName + "," + inputText);
 	
-	const url = 'http://localhost:3000/messages';
-	const xhttp = new XMLHttpRequest();
-	xhttp.open("POST", url);
-
-	var data = {
-		sender: sender,
-		receiver: receiver,
-		group_id: null,
-		message: inputText,
-		message_type: "text"
+	var inputText = document.getElementById("message").value;
+	
+	if(inputText != '') {
+		sendText();
+	} else {
+		sendAttachments();
 	}
-
-	xhttp.responseType = 'json';
-	if (data) {
-		xhttp.setRequestHeader('Content-Type', 'application/json');
-	}
-
-	xhttp.send(JSON.stringify(data));
 
 }
-
-function sendMessageGroup(e) {
-	e.preventDefault();
-	
-	var inputText = document.getElementById("message").value;
+function sendText() {
+	var messageContent = document.getElementById("message").value;
+	var messageType = "text";
 	document.getElementById("message").value = '';
-	socket.send("&" + username + "," + groupId + "," + inputText);
-	//console.log("&" + username + "," + groupId + "," + inputText);
-	setMessageGroup(username + "," + groupId + "," + inputText);
+	var message = buildMessageToJson(messageContent, messageType);
+	setMessage(message);
+	socket.send(JSON.stringify(message));
 	
 	const url = 'http://localhost:3000/messages';
 	const xhttp = new XMLHttpRequest();
@@ -224,9 +197,9 @@ function sendMessageGroup(e) {
 
 	var data = {
 		sender: username,
-		receiver: null,
-		group_id: Number(groupId),
-		message: inputText,
+		receiver: receiver,
+		group_id: message.groupId,
+		message: messageContent,
 		message_type: "text"
 	}
 
@@ -236,50 +209,148 @@ function sendMessageGroup(e) {
 	}
 
 	xhttp.send(JSON.stringify(data));
-
 }
 
-function setMessageGroup(msg) {
-	var ar = msg.split(',');
-	var sender = ar[0];
-	var group_id = ar[1];
-	var message = ar[2];
+function sendAttachments() {
+	var messageType = "attachment";
+	for (file of listFile) {
+		messageContent = file.name.trim();
+		messageType = file.type;
+		var message = buildMessageToJson(messageContent, messageType);
+		console.log(URL.createObjectURL(file));
 
-	var currentChat = document.getElementById('chat').innerHTML;
-	var newChatMsg = '';
-	if (message != null) {
-		newChatMsg = customLoadMessageGroup(sender, group_id, message, "");
+		if (messageType.startsWith("audio")) {
+			message.message = '<audio controls>'
+				+ '<source src="' + URL.createObjectURL(file) + '" type="' + messageType + '">'
+				+ '</audio>';
+		} else if (messageType.startsWith("video")) {
+			message.message = '<video width="400" controls>'
+				+ '<source src="' + URL.createObjectURL(file) + '" type="' + messageType + '">'
+				+ '</video>';
+		} else if (messageType.startsWith("image")) {
+			message.message = '<img src="' + URL.createObjectURL(file) + '" alt="">';
+		}
+		else {
+			message.message = '<a href= "' + URL.createObjectURL(file) + '">' + messageContent + '</a>'
+		}
+		var currentChat = document.getElementById('chat').innerHTML;
+		var newChatMsg = '';
+
+		newChatMsg = customLoadMessage(message.username, message.message);
+		
+		document.getElementById('chat').innerHTML = currentChat
+			+ newChatMsg;
+		goLastestMsg();
+		
 	}
 	
-	document.getElementById('chat').innerHTML = currentChat
-		+ newChatMsg;
-	goLastestMsg();
+	file = document.querySelector(".list-file");
+	file.classList.remove("active");
+	file.innerHTML = "";
+	listFile = [];
 }
+
+function buildMessageToJson(message, type) {
+	return {
+		username: username,
+		message: message,
+		type: type,
+		receiver: receiver,
+		groupId: Number(groupId)
+	};
+}
+
+function displayFiles() {
+	attachFile = document.getElementById("attach");
+	imageFile = document.getElementById("image");
+	file = document.querySelector(".list-file");
+	deleteAttach = document.querySelectorAll(".delete-attach");
+
+	attachFile.addEventListener("change", function(e) {
+		let filesInput = e.target.files;
+
+		for (const file of filesInput) {
+			listFile.push(file);
+		}
+
+		typeFile = "file";
+		renderFile("attach");
+
+		this.value = null;
+	});
+
+	imageFile.addEventListener("change", function(e) {
+		let filesImage = e.target.files;
+
+		for (const file of filesImage) {
+			listFile.push(file);
+		}
+		typeFile = "image";
+		renderFile("image");
+		this.value = null;
+	});
+
+
+
+}
+
+function deleteFile(idx) {
+	if (!isNaN(idx)) listFile.splice(idx, 1);
+	renderFile(typeFile);
+}
+
+function renderFile(typeFile) {
+	let listFileHTML = "";
+	let idx = 0;
+
+	if (typeFile == "image") {
+		for (const file of listFile) {
+			listFileHTML += '<li><img src="' + URL.createObjectURL(file)
+				+ '" alt="Image file"><span data-idx="'
+				+ (idx) + '" onclick="deleteFile('
+				+ idx + ')" class="delete-attach">X</span></li>';
+			idx++;
+		}
+	} else {
+		for (const file of listFile) {
+			listFileHTML += '<li><div class="file-input">' + file.name
+				+ '</div><span data-idx="'
+				+ (idx) + '" onclick="deleteFile('
+				+ idx + ')" class="delete-attach">X</span></li>';
+			idx++;
+		}
+	}
+
+
+	if (listFile.length == 0) {
+		file.innerHTML = "";
+		file.classList.remove("active");
+	} else {
+		file.innerHTML = listFileHTML;
+		file.classList.add("active");
+	}
+
+	deleteAttach = document.querySelectorAll(".delete-attach");
+}
+
 
 
 
 function setMessage(msg) {
-	var ar = msg.split(',');
-	var sender = ar[0];
-	var receiver = ar[1];
-	var message = ar[2];
-
 	var currentChat = document.getElementById('chat').innerHTML;
 	var newChatMsg = '';
-	if (receiver != null) {
-		newChatMsg = customLoadMessage(sender, message);
+	if (msg.groupId != null) {
+		newChatMsg = customLoadMessage(msg.username, msg.message);
+	} else {
+		newChatMsg = customLoadMessageGroup(msg.username, msg.groupId, msg.message, msg.avatar);
 	}
-	//	else {
-	//		newChatMsg = customLoadMessageGroup(msg.username, msg.groupId, msg.message, msg.avatar);
-	//	}
 	document.getElementById('chat').innerHTML = currentChat
 		+ newChatMsg;
 	goLastestMsg();
 }
 
 function customLoadMessage(sender, message) {
-	var username = username = document.getElementById("username").textContent;
-	var imgSrc = "https://www.kkday.com/vi/blog/wp-content/uploads/chup-anh-dep-bang-dien-thoai-25.jpg";
+	var imgSrc = receiverAvatar;
 	var msgDisplay = '<li>'
 		+ '<div class="message';
 	if (receiver != sender && username != sender) {
@@ -288,7 +359,7 @@ function customLoadMessage(sender, message) {
 	else if (receiver == sender) {
 		msgDisplay += '">';
 	} else {
-		imgSrc = "https://www.kkday.com/vi/blog/wp-content/uploads/chup-anh-dep-bang-dien-thoai-25.jpg";
+		imgSrc = userAvatar;
 		msgDisplay += ' right">';
 	}
 	return msgDisplay + '<div class="message-img">'

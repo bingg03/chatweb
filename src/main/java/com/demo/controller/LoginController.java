@@ -16,7 +16,6 @@ public class LoginController {
 	public ModelAndView handleLoginForm(@RequestParam String username, @RequestParam String password) {
 		System.out.println(username + " " + password);
 		DAO dao = new DAO();
-		// Xử lý dữ liệu từ form ở đây
 		User u = dao.checkLogin(username, password);
 		
 		if(u == null) {
@@ -26,7 +25,7 @@ public class LoginController {
 		} else {
 			ModelAndView mav = new ModelAndView("chatbox");
 			List<User> l = new ArrayList<>();
-			l = dao.getAllUser(username);
+			l = dao.getFriend(username);
 			mav.addObject("user", u);
 			mav.addObject("friends", l);
 			return mav;
