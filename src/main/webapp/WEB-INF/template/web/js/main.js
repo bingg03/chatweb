@@ -38,9 +38,9 @@ socket.onopen = function(event) {
 
 socket.onmessage = function(event) {
 	var message = event.data;
-	console.log(message);
 	try {
     	const messageJSON = JSON.parse(message);
+		console.log(messageJSON)
 		setMessage(messageJSON);
 	} catch (error) {
     	console.error('Error parsing JSON:', error);
@@ -217,7 +217,22 @@ function sendAttachments() {
 		messageContent = file.name.trim();
 		messageType = file.type;
 		var message = buildMessageToJson(messageContent, messageType);
-		console.log(URL.createObjectURL(file));
+            
+        socket.send('filename:'+messageContent);
+        var reader = new FileReader();
+        var rawData = new ArrayBuffer(); 
+        reader.loadend = function() {
+
+            }
+            reader.onload = function(e) {
+                rawData = e.target.result;
+                socket.send(rawData);
+                socket.send('filename:end');
+            }
+
+        reader.readAsArrayBuffer(file); 
+		
+		socket.send(JSON.stringify(message));
 
 		if (messageType.startsWith("audio")) {
 			message.message = '<audio controls>'

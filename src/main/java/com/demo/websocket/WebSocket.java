@@ -13,16 +13,31 @@ import javax.websocket.Session;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 
+import org.apache.taglibs.standard.tag.common.xml.IfTag;
+
 import com.demo.dao.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 
 @ServerEndpoint(value = "/ChatSocket")
 public class WebSocket {
+	
+	static File uploadedFile = null;
+	static String fileName = null;
+	static FileOutputStream fos = null;
+	final static String filePath = "D:/xampp/htdocs/file/";
+	final static String SRC_FILE = "http://localhost/file/";
+	
 	private static Set<Session> sessions = Collections.synchronizedSet(new HashSet<>());
 	
 	@OnOpen
@@ -37,8 +52,20 @@ public class WebSocket {
 	}
 
 	@OnMessage
+	public void processUpload(ByteBuffer msg, boolean last, Session session) {
+		while (msg.hasRemaining()) {
+			try {
+				fos.write(msg.get());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	
+	@OnMessage
 	public void onMessage(String message, Session session) throws Exception {
-		System.out.println("Client " + session.getId() + ": " + message);
+		//System.out.println("Client " + session.getId() + ": " + message);
 		if(isJson(message)) {
 			ObjectMapper objectMapper = new ObjectMapper();
 	        try {
@@ -46,6 +73,34 @@ public class WebSocket {
 	            
 	            String receiver = jsonNode.get("receiver").asText();
 	            String groupId = jsonNode.get("groupId").asText();
+	            String messageContent = jsonNode.get("message").asText();
+	            String typeMessage = jsonNode.get("type").asText();
+	            System.out.println(message);
+	            if (jsonNode.has("type")) {
+	            	if (typeMessage.startsWith("image")) {
+	            		((ObjectNode) jsonNode).put("type", "text");
+		                ((ObjectNode) jsonNode).put("message", "<img src=\"" + 
+		                		SRC_FILE + messageContent + "\" alt=\"\">");
+	            	} else if(typeMessage.startsWith("video")) {
+	            		((ObjectNode) jsonNode).put("type", "text");
+		                ((ObjectNode) jsonNode).put("message", "<video width=\"400\" controls>\r\n" 
+	            		+ "  <source src=\"" + SRC_FILE + messageContent
+								+ "\" type=\"" + typeMessage + "\">\r\n" + "</video>");
+	            	} else if(typeMessage.startsWith("audio")) {
+	            		((ObjectNode) jsonNode).put("type", "text");
+		                ((ObjectNode) jsonNode).put("message", "<audio controls>\r\n" +
+	            		"  <source src=\"" + SRC_FILE + messageContent + "\" type=\""
+								+ typeMessage + "\">\r\n" + "</audio>");
+	            	} else {
+	            		((ObjectNode) jsonNode).put("type", "text");
+		                ((ObjectNode) jsonNode).put("message", "<a href="
+	            		+ SRC_FILE + messageContent + ">" + messageContent + "</a>");
+	            	}
+	                
+	            }
+
+	            message = objectMapper.writeValueAsString(jsonNode);
+	            System.out.println(message);
 
 	            if(groupId != null) {
 	    			for (Session client : sessions) {
@@ -58,7 +113,7 @@ public class WebSocket {
 	    			DAO dao = new DAO();
 	    			List<String> userFromGroup = dao.getAllUserFromGroup(groupId);
 	    			String present_user = (String) session.getUserProperties().get("username");
-	    	
+	    		
 	    			for(String RECEIVER : userFromGroup) {
 	    				if(!RECEIVER.equals(present_user)) {
 	    					for (Session client : sessions) {
@@ -81,6 +136,27 @@ public class WebSocket {
 			if (message.startsWith("#")) {
 				String username = message.substring(1).trim();
 				session.getUserProperties().put("username", username);
+			} else if (message.startsWith("filename")) {
+				String name = message.substring(message.indexOf(':') + 1);
+				if (!name.equals("end")) {
+					uploadedFile = new File(filePath + name);
+					
+					//System.out.println(uploadedFile);
+					try {
+						fos = new FileOutputStream(uploadedFile);
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					}
+				} else {
+					try {
+						fos.flush();
+						fos.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			} else {
+				
 			}
 		}
 	}
