@@ -84,7 +84,7 @@ public class DAO {
 	
 	public static void main(String[] args) {
 		DAO dao = new DAO();
-		List<User> list = dao.getFriend("admin");
-		for(User oUser : list) System.out.println(oUser);
+		List<String> list = dao.getAllUserFromGroup("1");
+		System.out.println(list);
 	}
 }

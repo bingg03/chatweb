@@ -39,11 +39,78 @@ socket.onopen = function(event) {
 socket.onmessage = function(event) {
 	var message = event.data;
 	try {
-    	const messageJSON = JSON.parse(message);
-		console.log(messageJSON)
-		setMessage(messageJSON);
+		const messageJSON = JSON.parse(message);
+		
+		var checking = '<img src="' + 'http://localhost/file/a.png' + '" alt="">';
+		//messageJSON.message = '<img src="' + 'http://localhost/file/a.png' + '" alt="">';
+		//messageJSON.type = 'image/png';
+		var messageType = messageJSON.type;
+		
+		var messageContent = messageJSON.message;
+		//console.log(messageJSON.message);
+		if (messageType.startsWith("text")) {
+			
+		} else if (messageType.startsWith("audio")) {
+			messageJSON.message = '<audio controls>'
+				+ '<source src="' + 'http://localhost/file/' +messageContent + '" type="' + messageType + '">'
+				+ '</audio>';
+		} else if (messageType.startsWith("video")) {
+			messageJSON.message = '<video width="400" controls>'
+				+ '<source src="' + 'http://localhost/file/' + messageContente + '" type="' + messageType + '">'
+				+ '</video>';
+		} else if (messageType.startsWith("image")) {
+			messageJSON.message = '<img src="' + 'http://localhost/file/' + messageContent +
+			 '" type="' + messageType + '" alt="">';
+		}
+		else {
+			messageJSON.message = '<a href= "' + 'http://localhost/file/' + messageContent + '">' + messageContent + '</a>'
+		}
+		if(messageJSON.message === checking) console.log("Hellllllllll");
+		console.log(messageJSON);
+		//setMessage(messageJSON);
+		
+		var currentChat = document.getElementById('chat').innerHTML;
+		var newChatMsg = '';
+		
+		
+		
+		if(messageJSON.groupId != 0) {
+			newChatMsg = customLoadMessageGroup(messageJSON.username, messageJSON.groupId, messageJSON.message, "");
+			console.log("Da chat group here");
+			console.log(messageJSON.groupId);
+			console.log("Da chat ");
+		}
+		else {
+			newChatMsg = customLoadMessage(messageJSON.username, messageJSON.message);
+			console.log("Da chat user here");
+			console.log(messageJSON.groupId);
+			console.log("Da chat ");
+		}
+		document.getElementById('chat').innerHTML = currentChat
+			+ newChatMsg;
+		goLastestMsg();
+		
+		const url = 'http://localhost:3000/messages';
+		const xhttp = new XMLHttpRequest();
+		xhttp.open("POST", url);
+
+		var data = {
+			sender: messageJSON.username,
+			receiver: messageJSON.receiver,
+			group_id: messageJSON.groupId,
+			message: messageJSON.message,
+			message_type: messageJSON.type
+		}
+
+		xhttp.responseType = 'json';
+		if (data) {
+			xhttp.setRequestHeader('Content-Type', 'application/json');
+		}
+
+		xhttp.send(JSON.stringify(data));
+		
 	} catch (error) {
-    	console.error('Error parsing JSON:', error);
+		console.error('Error parsing JSON:', error);
 	}
 };
 
@@ -62,7 +129,7 @@ function setReceiver(element) {
 	if (document.getElementById('status-' + receiver).classList.contains('online')) {
 		status = 'online';
 	}
-	
+
 	var rightSide = '<div class="user-contact">' + '<div class="back">'
 		+ '<i class="fa fa-arrow-left"></i>'
 		+ '</div>'
@@ -97,16 +164,17 @@ function setReceiver(element) {
 		+ '</form>';
 
 	document.getElementById("receiver").innerHTML = rightSide;
-	
+
 	loadMessages();
-	
+
 	displayFiles();
-	
+
 	handleResponsive();
 
 }
 
 function setGroup(element) {
+	console.log("hihihi");
 	receiver = null;
 	groupName = element.getAttribute("data-name");
 	groupId = element.getAttribute("data-id");
@@ -122,7 +190,7 @@ function setGroup(element) {
 		.then(data => data.json())
 		.then(data => {
 			let isAdmin = false;
-			if(username === "admin") isAdmin = true;
+			if (username === "admin") isAdmin = true;
 
 			var rightSide = '<div class="user-contact">' + '<div class="back">'
 				+ '<i class="fa fa-arrow-left"></i>'
@@ -173,10 +241,10 @@ function setGroup(element) {
 
 function sendMessage(e) {
 	e.preventDefault();
-	
+
 	var inputText = document.getElementById("message").value;
-	
-	if(inputText != '') {
+
+	if (inputText != '') {
 		sendText();
 	} else {
 		sendAttachments();
@@ -189,26 +257,9 @@ function sendText() {
 	document.getElementById("message").value = '';
 	var message = buildMessageToJson(messageContent, messageType);
 	setMessage(message);
+	console.log(message);
 	socket.send(JSON.stringify(message));
-	
-	const url = 'http://localhost:3000/messages';
-	const xhttp = new XMLHttpRequest();
-	xhttp.open("POST", url);
 
-	var data = {
-		sender: username,
-		receiver: receiver,
-		group_id: message.groupId,
-		message: messageContent,
-		message_type: "text"
-	}
-
-	xhttp.responseType = 'json';
-	if (data) {
-		xhttp.setRequestHeader('Content-Type', 'application/json');
-	}
-
-	xhttp.send(JSON.stringify(data));
 }
 
 function sendAttachments() {
@@ -217,22 +268,24 @@ function sendAttachments() {
 		messageContent = file.name.trim();
 		messageType = file.type;
 		var message = buildMessageToJson(messageContent, messageType);
-            
-        socket.send('filename:'+messageContent);
-        var reader = new FileReader();
-        var rawData = new ArrayBuffer(); 
-        reader.loadend = function() {
 
-            }
-            reader.onload = function(e) {
-                rawData = e.target.result;
-                socket.send(rawData);
-                socket.send('filename:end');
-            }
+		/*
+		socket.send('filename:' + messageContent);
+		var reader = new FileReader();
+		var rawData = new ArrayBuffer();
+		reader.loadend = function() {
 
-        reader.readAsArrayBuffer(file); 
-		
-		socket.send(JSON.stringify(message));
+		}
+		reader.onload = function(e) {
+			rawData = e.target.result;
+			socket.send(rawData);
+			socket.send('filename:end');
+		}
+
+		reader.readAsArrayBuffer(file);
+		*/
+		//socket.send(JSON.stringify(message));
+
 
 		if (messageType.startsWith("audio")) {
 			message.message = '<audio controls>'
@@ -248,16 +301,25 @@ function sendAttachments() {
 		else {
 			message.message = '<a href= "' + URL.createObjectURL(file) + '">' + messageContent + '</a>'
 		}
+		//console.log(message.message);
 		var currentChat = document.getElementById('chat').innerHTML;
 		var newChatMsg = '';
 
 		newChatMsg = customLoadMessage(message.username, message.message);
-		
+
 		document.getElementById('chat').innerHTML = currentChat
 			+ newChatMsg;
 		goLastestMsg();
-		
+
 	}
+	
+	for (file of listFile) {
+		messageContent = file.name.trim();
+		messageType = file.type;
+		var message = buildMessageToJson(messageContent, messageType);
+		socket.send(JSON.stringify(message));
+	}
+	
 	
 	file = document.querySelector(".list-file");
 	file.classList.remove("active");
@@ -354,13 +416,16 @@ function renderFile(typeFile) {
 function setMessage(msg) {
 	var currentChat = document.getElementById('chat').innerHTML;
 	var newChatMsg = '';
-	if (msg.groupId != null) {
+	if (msg.groupId == 0) {
+		console.log("Đang custom User");
 		newChatMsg = customLoadMessage(msg.username, msg.message);
 	} else {
+		console.log("Đang custom Group")
 		newChatMsg = customLoadMessageGroup(msg.username, msg.groupId, msg.message, msg.avatar);
 	}
 	document.getElementById('chat').innerHTML = currentChat
 		+ newChatMsg;
+	goLastestMsg();
 	goLastestMsg();
 }
 
@@ -400,7 +465,7 @@ function customLoadMessageGroup(sender, groupIdFromServer, message, avatar) {
 	}
 	return msgDisplay + '<div class="message-img">'
 		+ '<img src="' + imgSrc + '" alt="">'
-		+ '<div class="sender-name">'+ sender +'</div>'
+		+ '<div class="sender-name">' + sender + '</div>'
 		+ ' </div>'
 		+ '<div class="message-text">' + message + '</div>'
 		+ '</div>'
@@ -540,6 +605,7 @@ function chatOne(ele) {
 }
 
 function chatGroup(ele) {
+	//console.log("hehe");
 	typeChat = "group";
 	resetChat();
 	ele.classList.add("active");
