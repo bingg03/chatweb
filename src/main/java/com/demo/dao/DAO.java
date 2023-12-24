@@ -10,13 +10,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DAO {
+	public Connection takeConnect() {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/chat", "root", "");
+			return con;
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return null;
+	}
+	
 	public List<User> getFriend(String user_name) {
 		List<User> l = new ArrayList<>();
 		String query = "select * from friends where sender = ?";
 		String query2 = "select * from user where username = ?";
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/chat", "root", "");
+			
+			Connection con = takeConnect();
 			PreparedStatement ps = con.prepareStatement(query);
 			ps.setString(1, user_name);
 			ResultSet rs = ps.executeQuery();
@@ -43,8 +54,8 @@ public class DAO {
 		String query = "select * from user where username = ? and password = ?";
 		
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/chat", "root", "");
+			
+			Connection con = takeConnect();
 			PreparedStatement ps = con.prepareStatement(query);
 			ps.setString(1, username);
 			ps.setString(2, password);
@@ -64,8 +75,8 @@ public class DAO {
 		String query = "select * from conversations_users where conversations_id = ?";
 		
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/chat", "root", "");
+			
+			Connection con = takeConnect();
 			PreparedStatement ps = con.prepareStatement(query);
 			ps.setString(1, group);
 			ResultSet rs = ps.executeQuery();

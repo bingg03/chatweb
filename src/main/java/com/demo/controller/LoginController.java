@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
+
+
 import com.demo.dao.DAO;
 import com.demo.model.User;
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ public class LoginController {
 		User u = dao.checkLogin(username, password);
 		
 		if(u == null) {
+			
 			ModelAndView mav = new ModelAndView("login");
 			mav.addObject("messageError", "Wrong username or password");
 			return mav;
@@ -30,6 +33,7 @@ public class LoginController {
 			mav.addObject("friends", l);
 			return mav;
 		}
+		
 	}
 
 }

@@ -20,8 +20,8 @@
 				<h3 class="tab-control-btn register">${description}</h3>
 			</div>
 			<div class="register-form form active">
-				<form action="<c:url value="/users${status}" />"
-					enctype="multipart/form-data" method="POST">
+				<form action="<c:url value="/users${status}"/>" enctype="multipart/form-data" method="POST">
+					<!-- 
 					<c:choose>
 						<c:when test="${user.username!=null}">
 							<input type="text" class="txt-input border"
@@ -33,13 +33,14 @@
 								placeholder="Username" name="username">
 						</c:otherwise>
 					</c:choose>
+					 -->
+					<input type="text" class="txt-input border"
+								placeholder="Username1" name="username"> 
+					 
 					<input type="password" class="txt-input border"
 						placeholder="Password" name="password"> <input
 						type="password" class="txt-input border" placeholder="Re Password">
-					<select name="gender" class="txt-input border gender-select" id="">
-						<option value="true">Male</option>
-						<option value="false">Female</option>
-					</select> <label for="image"> <img
+					<label for="image"> <img
 						src="<c:url value="/template/web/images/user-male.jpg" />"
 						class="image-profile" alt="">
 					</label> <input type="file" accept="image/*" name="avatar" id="image"

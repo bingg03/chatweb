@@ -75,43 +75,18 @@ public class WebSocket {
 	            String groupId = jsonNode.get("groupId").asText();
 	            String messageContent = jsonNode.get("message").asText();
 	            String typeMessage = jsonNode.get("type").asText();
-	            //System.out.println(message);
-//	            if (jsonNode.has("type")) {
-//	            	if (typeMessage.startsWith("image")) {
-//	            		((ObjectNode) jsonNode).put("type", typeMessage);
-//		                ((ObjectNode) jsonNode).put("message", "<img src=\"" + 
-//		                		SRC_FILE + messageContent + "\" alt=\"\">");
-//	            	} else if(typeMessage.startsWith("video")) {
-//	            		((ObjectNode) jsonNode).put("type", typeMessage);
-//		                ((ObjectNode) jsonNode).put("message", "<video width=\"400\" controls>\r\n" 
-//	            		+ "  <source src=\"" + SRC_FILE + messageContent
-//								+ "\" type=\"" + typeMessage + "\">\r\n" + "</video>");
-//	            	} else if(typeMessage.startsWith("audio")) {
-//	            		((ObjectNode) jsonNode).put("type", typeMessage);
-//		                ((ObjectNode) jsonNode).put("message", "<audio controls>\r\n" +
-//	            		"  <source src=\"" + SRC_FILE + messageContent + "\" type=\""
-//								+ typeMessage + "\">\r\n" + "</audio>");
-//	            	} else if(typeMessage.startsWith("text")) {
-//	            		
-//	            	} else {
-//	            		((ObjectNode) jsonNode).put("type", typeMessage);
-//		                ((ObjectNode) jsonNode).put("message", "<a href="
-//	            		+ SRC_FILE + messageContent + ">" + messageContent + "</a>");
-//	            	}
-//	                
-//	            }
+
 
 	            message = objectMapper.writeValueAsString(jsonNode);
 	            System.out.println(message);
-	            //System.out.println(groupId);
-	            //System.out.println(groupId == "0");
+	            
 	            if(groupId == "0") {
-	            	//System.out.println("Đang send cho 1 user");
+	            	
 	    			for (Session client : sessions) {
 	    				String receiver_name = (String) client.getUserProperties().get("username");
 						if (receiver_name != null && receiver_name.equals(receiver) && client.isOpen()) {
 							client.getBasicRemote().sendText(message);
-							//client.getBasicRemote().sendText(messageNON);
+							
 						}
 	    			}
 	            } else {
@@ -140,6 +115,7 @@ public class WebSocket {
 			
 			
 		} else {
+			
 			if (message.startsWith("#")) {
 				String username = message.substring(1).trim();
 				session.getUserProperties().put("username", username);
@@ -163,7 +139,10 @@ public class WebSocket {
 					}
 				}
 			} else {
-				
+				if(message.startsWith("?")) {
+					String processString = message.substring(0);
+					System.out.println();
+				}
 			}
 		}
 	}
@@ -177,3 +156,31 @@ public class WebSocket {
     }
 	
 }
+
+
+
+//System.out.println(message);
+//if (jsonNode.has("type")) {
+//	if (typeMessage.startsWith("image")) {
+//		((ObjectNode) jsonNode).put("type", typeMessage);
+//        ((ObjectNode) jsonNode).put("message", "<img src=\"" + 
+//        		SRC_FILE + messageContent + "\" alt=\"\">");
+//	} else if(typeMessage.startsWith("video")) {
+//		((ObjectNode) jsonNode).put("type", typeMessage);
+//        ((ObjectNode) jsonNode).put("message", "<video width=\"400\" controls>\r\n" 
+//		+ "  <source src=\"" + SRC_FILE + messageContent
+//				+ "\" type=\"" + typeMessage + "\">\r\n" + "</video>");
+//	} else if(typeMessage.startsWith("audio")) {
+//		((ObjectNode) jsonNode).put("type", typeMessage);
+//        ((ObjectNode) jsonNode).put("message", "<audio controls>\r\n" +
+//		"  <source src=\"" + SRC_FILE + messageContent + "\" type=\""
+//				+ typeMessage + "\">\r\n" + "</audio>");
+//	} else if(typeMessage.startsWith("text")) {
+//		
+//	} else {
+//		((ObjectNode) jsonNode).put("type", typeMessage);
+//        ((ObjectNode) jsonNode).put("message", "<a href="
+//		+ SRC_FILE + messageContent + ">" + messageContent + "</a>");
+//	}
+//    
+//}
