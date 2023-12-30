@@ -110,7 +110,7 @@
 								<div class="user-contain">
 									<div class="user-img">
 										<img id="img-${friend.username}"
-											src="<c:url value="/files/${friend.username}/${friend.avatar}" />"
+											src="http://localhost/file/avatar/${friend.username}/${friend.avatar}"
 											alt="Image of user">
 										<div id="status-${friend.username}" class="user-img-dot online"></div>
 									</div>

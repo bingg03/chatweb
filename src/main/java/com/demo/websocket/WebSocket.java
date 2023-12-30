@@ -14,8 +14,10 @@ import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 
 import org.apache.taglibs.standard.tag.common.xml.IfTag;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.demo.dao.*;
+import com.demo.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -140,8 +142,35 @@ public class WebSocket {
 				}
 			} else {
 				if(message.startsWith("?")) {
-					String processString = message.substring(0);
-					System.out.println();
+			        String processedString = message.substring(1);
+			        
+			        String[] parts = processedString.split(",");
+			        String username = parts[0];
+			        String password = parts[1];
+			        String avatar = parts[2];
+			        avatar = avatar.substring(12);
+			        UserService userService = new UserService();
+			        userService.createUserFolder(username, password, avatar);
+				} else if(message.startsWith("@")) {
+					System.out.println(message);
+					String processedString = message.substring(1);
+			        
+			        String[] parts = processedString.split(",");
+			        String username = parts[0];
+			        String groupId = parts[1];
+			        String groupName = parts[2];
+			        
+			        GroupDAO groupDAO = new GroupDAO();
+			        //add group 
+			        groupDAO.addGroup(Integer.parseInt(groupId), groupName, "group.png");
+			        //add user admin
+			        groupDAO.addUserWithAdmin(username, Integer.parseInt(groupId));
+				} else if(message.startsWith("$")) {
+					String processedString = message.substring(1);
+			        int groupId = Integer.parseInt(processedString);
+			        GroupDAO groupDAO = new GroupDAO();
+			        groupDAO.deleteGroup(groupId);
+			        groupDAO.deleteMemberGroup(groupId);
 				}
 			}
 		}

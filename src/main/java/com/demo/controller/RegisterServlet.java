@@ -54,7 +54,7 @@ public class RegisterServlet extends HttpServlet {
 			//dk o day
 			avatar = avatar.substring(12);
 			
-			System.out.println(username + " " + password + " " + avatar);
+			//System.out.println(username + " " + password + " " + avatar);
 			userDAO.addUser(username, password, avatar);
 			request.getRequestDispatcher("login").forward(request, response);
 		}

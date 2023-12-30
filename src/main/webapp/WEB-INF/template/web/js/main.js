@@ -1,5 +1,8 @@
 var socket = new WebSocket('ws://localhost:8080/spring-mvc/ChatSocket');
 
+var hostname = 'http://localhost:3000/';
+var server_name = 'http://localhost/file/';
+
 var receiver = null;
 var username = null;
 
@@ -27,6 +30,8 @@ var listUserAdd = [];
 var listUserDelete = [];
 var numberMember = 0;
 
+let allgroup;
+let allconversations_users;
 
 socket.onopen = function(event) {
 	username = document.getElementById("username").textContent;
@@ -40,19 +45,18 @@ socket.onmessage = function(event) {
 	var message = event.data;
 	try {
 		const messageJSON = JSON.parse(message);
-		
+
 		var checking = '<img src="' + 'http://localhost/file/a.png' + '" alt="">';
-		//messageJSON.message = '<img src="' + 'http://localhost/file/a.png' + '" alt="">';
-		//messageJSON.type = 'image/png';
+
 		var messageType = messageJSON.type;
-		
+
 		var messageContent = messageJSON.message;
 		//console.log(messageJSON.message);
 		if (messageType.startsWith("text")) {
-			
+
 		} else if (messageType.startsWith("audio")) {
 			messageJSON.message = '<audio controls>'
-				+ '<source src="' + 'http://localhost/file/' +messageContent + '" type="' + messageType + '">'
+				+ '<source src="' + 'http://localhost/file/' + messageContent + '" type="' + messageType + '">'
 				+ '</audio>';
 		} else if (messageType.startsWith("video")) {
 			messageJSON.message = '<video width="400" controls>'
@@ -60,55 +64,34 @@ socket.onmessage = function(event) {
 				+ '</video>';
 		} else if (messageType.startsWith("image")) {
 			messageJSON.message = '<img src="' + 'http://localhost/file/' + messageContent +
-			 '" type="' + messageType + '" alt="">';
+				'" type="' + messageType + '" alt="">';
 		}
 		else {
 			messageJSON.message = '<a href= "' + 'http://localhost/file/' + messageContent + '">' + messageContent + '</a>'
 		}
-		if(messageJSON.message === checking) console.log("Hellllllllll");
+		if (messageJSON.message === checking) console.log("Hellllllllll");
 		console.log(messageJSON);
 		//setMessage(messageJSON);
-		
+
 		var currentChat = document.getElementById('chat').innerHTML;
 		var newChatMsg = '';
-		
-		
-		
-		if(messageJSON.groupId != 0) {
+
+
+
+		if (messageJSON.groupId != 0) {
 			newChatMsg = customLoadMessageGroup(messageJSON.username, messageJSON.groupId, messageJSON.message, "");
 			console.log("Da chat group here");
 			console.log(messageJSON.groupId);
-			console.log("Da chat ");
 		}
 		else {
 			newChatMsg = customLoadMessage(messageJSON.username, messageJSON.message);
 			console.log("Da chat user here");
 			console.log(messageJSON.groupId);
-			console.log("Da chat ");
 		}
 		document.getElementById('chat').innerHTML = currentChat
 			+ newChatMsg;
 		goLastestMsg();
-		
-		const url = 'http://localhost:3000/messages';
-		const xhttp = new XMLHttpRequest();
-		xhttp.open("POST", url);
 
-		var data = {
-			sender: messageJSON.username,
-			receiver: messageJSON.receiver,
-			group_id: messageJSON.groupId,
-			message: messageJSON.message,
-			message_type: messageJSON.type
-		}
-
-		xhttp.responseType = 'json';
-		if (data) {
-			xhttp.setRequestHeader('Content-Type', 'application/json');
-		}
-
-		xhttp.send(JSON.stringify(data));
-		
 	} catch (error) {
 		console.error('Error parsing JSON:', error);
 	}
@@ -260,6 +243,20 @@ function sendText() {
 	console.log(message);
 	socket.send(JSON.stringify(message));
 
+	const url = '${hostname}messages';
+	const xhttp = new XMLHttpRequest();
+	xhttp.open("POST", url);
+	var data = {
+		sender: message.username,
+		receiver: message.receiver,
+		group_id: message.groupId,
+		message: message.message,
+		message_type: message.type
+	}
+	xhttp.responseType = 'json';
+	if (data) { xhttp.setRequestHeader('Content-Type', 'application/json'); }
+	xhttp.send(JSON.stringify(data));
+
 }
 
 function sendAttachments() {
@@ -312,15 +309,15 @@ function sendAttachments() {
 		goLastestMsg();
 
 	}
-	
+
 	for (file of listFile) {
 		messageContent = file.name.trim();
 		messageType = file.type;
 		var message = buildMessageToJson(messageContent, messageType);
 		socket.send(JSON.stringify(message));
 	}
-	
-	
+
+
 	file = document.querySelector(".list-file");
 	file.classList.remove("active");
 	file.innerHTML = "";
@@ -417,10 +414,10 @@ function setMessage(msg) {
 	var currentChat = document.getElementById('chat').innerHTML;
 	var newChatMsg = '';
 	if (msg.groupId == 0) {
-		console.log("Đang custom User");
+		//console.log("Đang custom User");
 		newChatMsg = customLoadMessage(msg.username, msg.message);
 	} else {
-		console.log("Đang custom Group")
+		//console.log("Đang custom Group")
 		newChatMsg = customLoadMessageGroup(msg.username, msg.groupId, msg.message, msg.avatar);
 	}
 	document.getElementById('chat').innerHTML = currentChat
@@ -490,7 +487,7 @@ function loadMessagesGroup() {
 			var chatbox = "";
 			messages.forEach(msg => {
 				try {
-					chatbox += customLoadMessageGroup(msg.sender, msg.group_id, msg.message, ""); // cuoi la msg.avatar
+					chatbox += customLoadMessageGroup(msg.sender, msg.group_id, msg.message, "");
 				} catch (ex) {
 
 				}
@@ -499,7 +496,7 @@ function loadMessagesGroup() {
 			goLastestMsg();
 		}
 	};
-	xhttp.open("GET", "http://localhost:3000/messages?group_id=" + groupId, true);
+	xhttp.open("GET", hostname + "messages?group_id=" + groupId, true);
 	xhttp.send();
 }
 
@@ -526,7 +523,7 @@ function loadMessages() {
 			goLastestMsg();
 		}
 	};
-	xhttp.open("GET", "http://localhost:3000" + "/messages", true);
+	xhttp.open("GET", hostname + "messages", true);
 	xhttp.send();
 }
 
@@ -575,6 +572,150 @@ function displayFiles() {
 
 }
 
+function createGroup(e) {
+	e.preventDefault();
+
+	let groupName = document.querySelector(".txt-group-name").value;
+
+	toggleAllModal();
+	console.log(groupName);
+	var current_id;
+	//get id group
+	var xhttp1 = new XMLHttpRequest();
+	xhttp1.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			var messages = JSON.parse(this.responseText);
+			console.log(messages);
+			console.log(messages.length);
+			current_id = messages.length + 1;
+
+			//add user vao group
+			var xhttp2 = new XMLHttpRequest();
+			const url = hostname + 'conversations_users';
+			console.log(url);
+			xhttp2.open("POST", url);
+			var data1 = {
+				conversations_id: messages.length + 1,
+				username: username,
+				is_admin: true
+			}
+			socket.send('@' + username + ',' + (messages.length + 1) + ',' + groupName);
+			xhttp2.responseType = 'json';
+			if (data1) { xhttp2.setRequestHeader('Content-Type', 'application/json'); }
+			xhttp2.send(JSON.stringify(data1));
+			
+			
+		} else {
+			console.error("Error fetching conversations:", this.status);
+		}
+
+	};
+	xhttp1.open("GET", hostname + "conversations", true);
+	xhttp1.send();
+
+
+
+	//add group
+	var object = {
+		name: groupName,
+		avatar: 'group.png'
+	}
+	fetch(hostname + "conversations", {
+		method: "post",
+		cache: 'no-cache',
+		headers: {
+			'Content-Type': 'application/json;charset=utf-8'
+		},
+		body: JSON.stringify(object)
+	})
+		.then(function(data) {
+			return data.json();
+		})
+		.then(function(data) {
+
+			if (typeChat != "group") return;
+
+			let numberMember = 1;
+
+			console.log(data);
+			let imgSrc = ' src="' + server_name + 'group/group.png"';
+			let appendUser = '<li id="group-' + data.id + '">'
+				+ '<div class="user-contain" data-id="' + data.id + '" data-number="' + numberMember + '" data-name="' + data.name + '" onclick="setGroup(this);">'
+				+ '<div class="user-img">'
+				+ '<img id="img-group-' + data.id + '"'
+				+ imgSrc
+				+ ' alt="Image of user">'
+				+ '</div>'
+				+ '<div class="user-info" style="flex-grow:1 ;">'
+				+ '<span class="user-name">' + data.name + '</span>'
+				+ '</div>'
+				+ '</div>'
+				+ '<div class="group-delete border" data-id="' + data.id + '" onclick="deleteGroup(this)">Delete</div>'
+				+ '</li>';
+			document.querySelector(".left-side .list-user").innerHTML += appendUser;
+			document.querySelector(".txt-group-name").value = "";
+		});
+}
+
+function deleteGroup(ele) {
+	let grpId = ele.getAttribute("data-id");
+	console.log(grpId);
+	if (grpId == groupId) document.querySelector(".right-side").innerHTML = "";
+	socket.send('$' + grpId);
+	fetch(hostname + "conversations/" + grpId, {
+		method: 'delete'
+	})
+		.then(function(data) {
+			return data.json();
+		})
+		.then(function(data) {
+			console.log(data);
+			let groupNumber = document.getElementById("group-" + grpId);
+			if (groupNumber) groupNumber.outerHTML = "";
+
+		})
+		.catch(ex => console.log(ex));
+	//sua lai cai nay
+	var xhttp1 = new XMLHttpRequest();
+	xhttp1.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			var messages = JSON.parse(this.responseText);
+			console.log(messages);
+			messages.forEach(msg => {
+				try {
+					console.log(msg.id);
+					const url = `${hostname}conversations_users/${msg.id}`;
+
+					fetch(url, {
+						method: 'DELETE',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+					})
+						.then(response => {
+							if (!response.ok) {
+								throw new Error('Network response was not ok');
+							}
+							return response.json();
+						})
+						.then(data => {
+							console.log('Deleted:', data);
+						})
+						.catch(error => {
+							console.error('There was a problem with the fetch operation:', error);
+						});
+				} catch (ex) {
+				}
+			});
+		} else {
+			console.error("Error fetching conversations:", this.status);
+		}
+
+	};
+	xhttp1.open("GET", hostname + "conversations_users?conversations_id=" + grpId, true);
+	xhttp1.send();
+}
+
 
 function resetChat() {
 	let chatBtn = document.querySelectorAll(".tab-control i");
@@ -594,13 +735,36 @@ function resetChat() {
 	}
 }
 
+function toggleAllModal() {
+	let modalBox = document.querySelectorAll(".modal-box");
+
+	modalBox.forEach(function(modal) {
+		modal.classList.remove("active");
+	});
+
+}
+
+function toggleModal(ele, mode) {
+	let modalBox = document.querySelectorAll(".modal-box");
+	let id = ele.getAttribute("data-id");
+
+	modalBox.forEach(function(modal) {
+		modal.classList.remove("active");
+	});
+
+
+	if (mode) document.getElementById(id).classList.add("active");
+	else document.getElementById(id).classList.remove("active");
+}
+
+
 
 function chatOne(ele) {
 	typeChat = "user";
 	resetChat();
 	ele.classList.add("active");
-	searchFriendByKeyword("");
 	rightSide = null;
+	searchFriendByKeyword("");
 	listFiles = [];
 }
 
@@ -609,34 +773,49 @@ function chatGroup(ele) {
 	typeChat = "group";
 	resetChat();
 	ele.classList.add("active");
-	fetchGroup();
 	rightSide = null;
+	fetchGroup();
+
 	listFiles = [];
 }
 function fetchGroup() {
-	fetch("http://localhost:3000/conversations_users?username=" + username)
+	fetch(hostname + 'conversations')
 		.then(function(data) {
 			return data.json();
 		})
 		.then(data => {
-
+			allgroup = data;
+			//console.log(allgroup);
+		}).catch(ex => {
+			console.log(ex);
+		});
+	
+	
+	fetch(hostname + 'conversations_users?username=' + username)
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
 			document.querySelector(".left-side .list-user").innerHTML = "";
 			data.forEach(function(data) {
-				let numberMember = 3;
-
+				let numberMember = 2;
+				//console.log(allgroup);
 				//let findObject = data.users.find(element => element.username == username);
 				let isAdmin = data.is_admin;
-
-				let imgSrc = ' src="https://cdn-icons-png.flaticon.com/512/69/69589.png"';
+				let matchedGroup = allgroup.find(group => group.id === data.conversations_id);
+				//console.log(matchedGroup);
+				//console.log(matchedGroup.avatar);
+				
+				let imgSrc = `src="${server_name}group/${matchedGroup.avatar}"`;
 				let appendUser = '<li id="group-' + data.conversations_id + '">'
-					+ '<div class="user-contain" data-id="' + data.conversations_id + '" data-number="' + numberMember + '" data-name="' + "group1" + '" onclick="setGroup(this);">'
+					+ '<div class="user-contain" data-id="' + data.conversations_id + '" data-number="' + numberMember + '" data-name="' + matchedGroup.name + '" onclick="setGroup(this);">'
 					+ '<div class="user-img">'
 					+ '<img id="img-group-' + data.conversations_id + '"'
 					+ imgSrc
 					+ ' alt="Image of user">'
 					+ '</div>'
 					+ '<div class="user-info" style="flex-grow:1 ;">'
-					+ '<span class="user-name">' + "group1" + '</span>'
+					+ '<span class="user-name">' + matchedGroup.name + '</span>'
 					+ '</div>'
 					+ '</div>';
 				if (isAdmin) {
@@ -700,3 +879,42 @@ function handleResponsive() {
 	leftSide.classList.remove("active");
 
 }
+
+/*
+function searchMemberByKeyword(ele) {
+	let keyword = ele.value;
+	fetch(hostname + "friends?username=" + username + "&keyword=" + keyword + "&c)
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+
+			document.querySelector(".add-member-body .list-user ul").innerHTML = "";
+			data.forEach(function(data) {
+				if (data.online) status = "online";
+				else status = "";
+
+				let check = "";
+				if (listUserAdd.indexOf(data.username) >= 0) check = "checked";
+
+				let appendUser = '<li>'
+					+ '<input id="member-' + data.username + '" type="checkbox" ' + check + ' value="' + data.username + '" onchange="addUserChange(this)">'
+					+ '<label for="member-' + data.username + '">'
+					+ '<div class="user-contain">'
+					+ '<div class="user-img">'
+					+ '<img '
+					+ ' src="http://' + window.location.host + '/files/' + data.username + '/' + data.avatar + '"'
+					+ 'alt="Image of user">'
+					+ '</div>'
+					+ '<div class="user-info">'
+					+ '<span class="user-name">' + data.username + '</span>'
+					+ '</div>'
+					+ '</div>'
+					+ '</label>'
+					+ '<div class="user-select-dot"></div>'
+					+ '</li>';
+				document.querySelector(".add-member-body .list-user ul").innerHTML += appendUser;
+			});
+		});
+}
+*/
