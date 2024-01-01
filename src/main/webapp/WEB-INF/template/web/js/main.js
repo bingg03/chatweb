@@ -32,13 +32,38 @@ var numberMember = 0;
 
 let allgroup;
 let allconversations_users;
+let alluser;
+let relationship;
+let friends;
 
 socket.onopen = function(event) {
 	username = document.getElementById("username").textContent;
 	userAvatar = document.getElementById("userAvatar").textContent;
-	console.log(username);
 
+	console.log(username);
+	console.log(leftSide);
+	console.log(rightSide);
 	socket.send("#" + username);
+
+	fetch(hostname + 'user')
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			alluser = data;
+		}).catch(ex => {
+			console.log(ex);
+		});
+
+	fetch(hostname + 'friends')
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			friends = data;
+		}).catch(ex => {
+			console.log(ex);
+		});
 };
 
 socket.onmessage = function(event) {
@@ -46,7 +71,6 @@ socket.onmessage = function(event) {
 	try {
 		const messageJSON = JSON.parse(message);
 
-		var checking = '<img src="' + 'http://localhost/file/a.png' + '" alt="">';
 
 		var messageType = messageJSON.type;
 
@@ -56,37 +80,36 @@ socket.onmessage = function(event) {
 
 		} else if (messageType.startsWith("audio")) {
 			messageJSON.message = '<audio controls>'
-				+ '<source src="' + 'http://localhost/file/' + messageContent + '" type="' + messageType + '">'
+				+ '<source src="' + server_name + messageContent + '" type="' + messageType + '">'
 				+ '</audio>';
 		} else if (messageType.startsWith("video")) {
 			messageJSON.message = '<video width="400" controls>'
-				+ '<source src="' + 'http://localhost/file/' + messageContente + '" type="' + messageType + '">'
+				+ '<source src="' + server_name + messageContent + '" type="' + messageType + '">'
 				+ '</video>';
 		} else if (messageType.startsWith("image")) {
-			messageJSON.message = '<img src="' + 'http://localhost/file/' + messageContent +
+			messageJSON.message = '<img src="' + server_name + messageContent +
 				'" type="' + messageType + '" alt="">';
 		}
 		else {
-			messageJSON.message = '<a href= "' + 'http://localhost/file/' + messageContent + '">' + messageContent + '</a>'
+			messageJSON.message = '<a href= "' + server_name + messageContent + '">' + messageContent + '</a>'
 		}
-		if (messageJSON.message === checking) console.log("Hellllllllll");
+
 		console.log(messageJSON);
-		//setMessage(messageJSON);
 
 		var currentChat = document.getElementById('chat').innerHTML;
 		var newChatMsg = '';
 
-
+		let avatar_withName = alluser.find(user => user.username === messageJSON.username);
 
 		if (messageJSON.groupId != 0) {
-			newChatMsg = customLoadMessageGroup(messageJSON.username, messageJSON.groupId, messageJSON.message, "");
-			console.log("Da chat group here");
-			console.log(messageJSON.groupId);
+			newChatMsg = customLoadMessageGroup(messageJSON.username, messageJSON.groupId, messageJSON.message, avatar_withName.avatar);
+			//console.log("Da chat group here");
+			//console.log(messageJSON.groupId);
 		}
 		else {
 			newChatMsg = customLoadMessage(messageJSON.username, messageJSON.message);
-			console.log("Da chat user here");
-			console.log(messageJSON.groupId);
+			//console.log("Da chat user here");
+			//console.log(messageJSON.groupId);
 		}
 		document.getElementById('chat').innerHTML = currentChat
 			+ newChatMsg;
@@ -153,15 +176,206 @@ function setReceiver(element) {
 	displayFiles();
 
 	handleResponsive();
+	makeFriend(rightSide);
+}
 
+function makeFriend(rightSide) {
+	fetch(hostname + "friends?sender=" + username + "&receiver=" + receiver)
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			var status = '';
+			if (document.getElementById('status-' + receiver).classList.contains('online')) {
+				status = 'online';
+			}
+			if (!data || data.length === 0) {
+				rightSide = '<div class="user-contact">' + '<div class="back">'
+					+ '<i class="fa fa-arrow-left"></i>'
+					+ '</div>'
+					+ '<div class="user-contain">'
+					+ '<div class="user-img">'
+					+ '<img src="' + receiverAvatar + '" '
+					+ 'alt="Image of user">'
+					+ '<div class="user-img-dot ' + status + '"></div>'
+					+ '</div>'
+					+ '<div class="user-info">'
+					+ '<span class="user-name">' + receiver + '</span>'
+					+ '</div>'
+					+ '</div>'
+					+ '<form id="addFriendForm" action="" method="post" >'
+					+ '<input type="hidden" name="sender" value="' + username + '">'
+					+ '<input type="hidden" name="receiver" value="' + receiver + '">'
+					+ '<input type="hidden" name="status" value="false">'
+					+ '<input type="hidden" name="isAccept" value="false">'
+					+ '<input class="btn" type="submit" value="Add Friend">'
+					+ '</form>'
+					+ '</div>'
+					+ '<div class="list-messages-contain">'
+					+ '<ul id="chat" class="list-messages">'
+					+ '</ul>'
+					+ '</div>';
+				document.getElementById("receiver").innerHTML = rightSide;
+
+				document.getElementById("addFriendForm").addEventListener("submit", function(event) {
+					event.preventDefault(); // Ngăn chặn form gửi yêu cầu mặc định
+					UserAddFriend(); // Gọi hàm addFriend khi form được submit
+				});
+			} else {
+				if (data[0].status === 2) {
+					rightSide = '<div class="user-contact">' + '<div class="back">'
+						+ '<i class="fa fa-arrow-left"></i>'
+						+ '</div>'
+						+ '<div class="user-contain">'
+						+ '<div class="user-img">'
+						+ '<img src="' + receiverAvatar + '" '
+						+ 'alt="Image of user">'
+						+ '<div class="user-img-dot ' + status + '"></div>'
+						+ '</div>'
+						+ '<div class="user-info">'
+						+ '<span class="user-name">' + receiver + '</span>'
+						+ '</div>'
+						+ '</div>'
+						+ '<span style="font-size:1.8rem">Sent Request</span>'
+						+ '</form>'
+						+ '</div>'
+						+ '<div class="list-messages-contain">'
+						+ '<ul id="chat" class="list-messages">'
+						+ '</ul>'
+						+ '</div>';
+
+					document.getElementById("receiver").innerHTML = rightSide;
+
+				} else if (data[0].status === 0) {
+					rightSide = '<div class="user-contact">' + '<div class="back">'
+						+ '<i class="fa fa-arrow-left"></i>'
+						+ '</div>'
+						+ '<div class="user-contain">'
+						+ '<div class="user-img">'
+						+ '<img src="' + receiverAvatar + '" '
+						+ 'alt="Image of user">'
+						+ '<div class="user-img-dot ' + status + '"></div>'
+						+ '</div>'
+						+ '<div class="user-info">'
+						+ '<span class="user-name">' + receiver + '</span>'
+						+ '</div>'
+						+ '</div>'
+						+ '<form id="acceptFriendForm" action="" method="post" >'
+						+ '<input type="hidden" name="sender" value="' + username + '">'
+						+ '<input type="hidden" name="receiver" value="' + receiver + '">'
+						+ '<input type="hidden" name="status" value="true">'
+						+ '<input type="hidden" name="isAccept" value="true">'
+						+ '<input class="btn" type="submit" value="Accept Friend Request">'
+						+ '</form>'
+						+ '</div>'
+						+ '<div class="list-messages-contain">'
+						+ '<ul id="chat" class="list-messages">'
+						+ '</ul>'
+						+ '</div>';
+					document.getElementById("receiver").innerHTML = rightSide;
+					document.getElementById("acceptFriendForm").addEventListener("submit", function(event) {
+						event.preventDefault(); // Ngăn chặn form gửi yêu cầu mặc định
+						UserAcceptFriend(); // Gọi hàm addFriend khi form được submit
+					});
+				}
+			}
+			handleResponsive();
+		})
+		.catch(ex => console.log(ex));
+}
+
+function UserAddFriend() {
+	console.log("user dang add friend");
+	fetch(hostname + 'user')
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			alluser = data;
+		}).catch(ex => {
+			console.log(ex);
+		});
+	let online_username = alluser.find(user => user.username === username);
+	let online_receiver = alluser.find(user => user.username === receiver);
+
+	const url = hostname + "friends";
+	const xhttp = new XMLHttpRequest();
+	xhttp.open("POST", url);
+	var data = {
+		sender: username,
+		receiver: receiver,
+		status: 2,
+		online: online_username.online
+	}
+	xhttp.responseType = 'json';
+	if (data) { xhttp.setRequestHeader('Content-Type', 'application/json'); }
+	xhttp.send(JSON.stringify(data));
+
+
+	const xhttp1 = new XMLHttpRequest();
+	xhttp1.open("POST", url);
+	var data1 = {
+		sender: receiver,
+		receiver: username,
+		status: 0,
+		online: online_receiver.online
+	}
+	xhttp1.responseType = 'json';
+	if (data1) { xhttp1.setRequestHeader('Content-Type', 'application/json'); }
+	xhttp1.send(JSON.stringify(data1));
+
+	resetChat();
+	searchFriendByKeyword("");
+	rightSide = null;
+	document.getElementById("receiver").innerHTML = rightSide;
+}
+function UserAcceptFriend() {
+	console.log("user dang accept friend");
+
+	let pair_friend1 = friends.find(friend => (friend.sender === username && friend.receiver === receiver));
+
+	let pair_friend2 = friends.find(friend => (friend.sender === receiver && friend.receiver === username));
+
+	const updatedData = {
+		status: 1
+	};
+	fetch(`${hostname}friends/${pair_friend1.id}`, {
+		method: 'PATCH',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(updatedData),
+	})
+		.then(response => response.json())
+		.then(data => {
+		})
+		.catch(error => {
+		});
+
+	fetch(`${hostname}friends/${pair_friend2.id}`, {
+		method: 'PATCH',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(updatedData),
+	})
+		.then(response => response.json())
+		.then(data => {
+		})
+		.catch(error => {
+		});
+
+	rightSide = null;
+	document.getElementById("receiver").innerHTML = rightSide;
 }
 
 function setGroup(element) {
-	console.log("hihihi");
+	//console.log("hihihi");
 	receiver = null;
 	groupName = element.getAttribute("data-name");
 	groupId = element.getAttribute("data-id");
-
+	console.log(groupName);
+	console.log(groupId);
 	receiverAvatar = document.getElementById("img-group-" + groupId).src;
 
 	listUserAdd = [];
@@ -169,7 +383,7 @@ function setGroup(element) {
 	numberMember = parseInt(element.getAttribute("data-number"));
 
 
-	fetch("http://localhost:3000" + "/conversations?id=" + groupId)
+	fetch(hostname + "conversations?id=" + groupId)
 		.then(data => data.json())
 		.then(data => {
 			let isAdmin = false;
@@ -235,6 +449,7 @@ function sendMessage(e) {
 
 }
 function sendText() {
+	//console.log("đang gửi");
 	var messageContent = document.getElementById("message").value;
 	var messageType = "text";
 	document.getElementById("message").value = '';
@@ -243,7 +458,7 @@ function sendText() {
 	console.log(message);
 	socket.send(JSON.stringify(message));
 
-	const url = '${hostname}messages';
+	const url = hostname + "messages";
 	const xhttp = new XMLHttpRequest();
 	xhttp.open("POST", url);
 	var data = {
@@ -283,30 +498,38 @@ function sendAttachments() {
 		*/
 		//socket.send(JSON.stringify(message));
 
-
+		console.log(messageContent);
+		let src_file = server_name + messageContent;
 		if (messageType.startsWith("audio")) {
 			message.message = '<audio controls>'
-				+ '<source src="' + URL.createObjectURL(file) + '" type="' + messageType + '">'
+				+ '<source src="' + src_file + '" type="' + messageType + '">'
 				+ '</audio>';
 		} else if (messageType.startsWith("video")) {
 			message.message = '<video width="400" controls>'
-				+ '<source src="' + URL.createObjectURL(file) + '" type="' + messageType + '">'
+				+ '<source src="' + src_file + '" type="' + messageType + '">'
 				+ '</video>';
 		} else if (messageType.startsWith("image")) {
-			message.message = '<img src="' + URL.createObjectURL(file) + '" alt="">';
+			message.message = '<img src="' + src_file + '" alt="">';
 		}
 		else {
-			message.message = '<a href= "' + URL.createObjectURL(file) + '">' + messageContent + '</a>'
+			message.message = '<a href= "' + src_file + '">' + messageContent + '</a>'
 		}
-		//console.log(message.message);
-		var currentChat = document.getElementById('chat').innerHTML;
-		var newChatMsg = '';
+		console.log(message.message);
+		setMessage(message);
 
-		newChatMsg = customLoadMessage(message.username, message.message);
-
-		document.getElementById('chat').innerHTML = currentChat
-			+ newChatMsg;
-		goLastestMsg();
+		const url = hostname + "messages";
+		const xhttp = new XMLHttpRequest();
+		xhttp.open("POST", url);
+		var data = {
+			sender: message.username,
+			receiver: message.receiver,
+			group_id: message.groupId,
+			message: message.message,
+			message_type: message.type
+		}
+		xhttp.responseType = 'json';
+		if (data) { xhttp.setRequestHeader('Content-Type', 'application/json'); }
+		xhttp.send(JSON.stringify(data));
 
 	}
 
@@ -418,12 +641,13 @@ function setMessage(msg) {
 		newChatMsg = customLoadMessage(msg.username, msg.message);
 	} else {
 		//console.log("Đang custom Group")
-		newChatMsg = customLoadMessageGroup(msg.username, msg.groupId, msg.message, msg.avatar);
+		let avatar_withName = alluser.find(user => user.username === msg.username);
+		newChatMsg = customLoadMessageGroup(msg.username, msg.groupId, msg.message, avatar_withName.avatar);
 	}
 	document.getElementById('chat').innerHTML = currentChat
 		+ newChatMsg;
 	goLastestMsg();
-	goLastestMsg();
+	//goLastestMsg();
 }
 
 function customLoadMessage(sender, message) {
@@ -448,7 +672,7 @@ function customLoadMessage(sender, message) {
 }
 
 function customLoadMessageGroup(sender, groupIdFromServer, message, avatar) {
-	let imgSrc = 'https://www.kkday.com/vi/blog/wp-content/uploads/chup-anh-dep-bang-dien-thoai-25.jpg';
+	let imgSrc = server_name + "avatar/" + sender + "/" + avatar;
 	var msgDisplay = '<li>'
 		+ '<div class="message';
 	if (groupIdFromServer != groupId) {
@@ -457,7 +681,7 @@ function customLoadMessageGroup(sender, groupIdFromServer, message, avatar) {
 	if (username != sender) {
 		msgDisplay += '">';
 	} else {
-		imgSrc = 'https://www.kkday.com/vi/blog/wp-content/uploads/chup-anh-dep-bang-dien-thoai-25.jpg';
+		imgSrc = userAvatar;
 		msgDisplay += ' right">';
 	}
 	return msgDisplay + '<div class="message-img">'
@@ -487,7 +711,8 @@ function loadMessagesGroup() {
 			var chatbox = "";
 			messages.forEach(msg => {
 				try {
-					chatbox += customLoadMessageGroup(msg.sender, msg.group_id, msg.message, "");
+					let avatar_withName = alluser.find(user => user.username === msg.sender);
+					chatbox += customLoadMessageGroup(msg.sender, msg.group_id, msg.message, avatar_withName.avatar);
 				} catch (ex) {
 
 				}
@@ -603,8 +828,8 @@ function createGroup(e) {
 			xhttp2.responseType = 'json';
 			if (data1) { xhttp2.setRequestHeader('Content-Type', 'application/json'); }
 			xhttp2.send(JSON.stringify(data1));
-			
-			
+
+
 		} else {
 			console.error("Error fetching conversations:", this.status);
 		}
@@ -733,6 +958,16 @@ function resetChat() {
 	} else {
 		addGroupBtn.classList.remove("active");
 	}
+
+	fetch(hostname + 'friends')
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			friends = data;
+		}).catch(ex => {
+			console.log(ex);
+		});
 }
 
 function toggleAllModal() {
@@ -763,20 +998,25 @@ function chatOne(ele) {
 	typeChat = "user";
 	resetChat();
 	ele.classList.add("active");
-	rightSide = null;
 	searchFriendByKeyword("");
 	listFiles = [];
+	rightSide = null;
+	console.log(leftSide);
+	console.log(rightSide);
+	document.getElementById("receiver").innerHTML = rightSide;
 }
 
 function chatGroup(ele) {
-	//console.log("hehe");
+	console.log("Hien all group here");
 	typeChat = "group";
 	resetChat();
 	ele.classList.add("active");
-	rightSide = null;
 	fetchGroup();
-
 	listFiles = [];
+	rightSide = null;
+	console.log(leftSide);
+	console.log(rightSide);
+	document.getElementById("receiver").innerHTML = rightSide;
 }
 function fetchGroup() {
 	fetch(hostname + 'conversations')
@@ -789,8 +1029,17 @@ function fetchGroup() {
 		}).catch(ex => {
 			console.log(ex);
 		});
-	
-	
+
+	fetch(hostname + 'conversations_users')
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			allconversations_users = data;
+		}).catch(ex => {
+			console.log(ex);
+		});
+
 	fetch(hostname + 'conversations_users?username=' + username)
 		.then(function(data) {
 			return data.json();
@@ -798,14 +1047,17 @@ function fetchGroup() {
 		.then(data => {
 			document.querySelector(".left-side .list-user").innerHTML = "";
 			data.forEach(function(data) {
-				let numberMember = 2;
-				//console.log(allgroup);
-				//let findObject = data.users.find(element => element.username == username);
+
+				let conversations_copy = allconversations_users;
 				let isAdmin = data.is_admin;
 				let matchedGroup = allgroup.find(group => group.id === data.conversations_id);
+				let conversations_withId = conversations_copy.filter(conversation => conversation.conversations_id === data.conversations_id);
 				//console.log(matchedGroup);
 				//console.log(matchedGroup.avatar);
-				
+				console.log(allconversations_users);
+				console.log(conversations_withId);
+				let numberMember = conversations_withId.length;
+				console.log(numberMember);
 				let imgSrc = `src="${server_name}group/${matchedGroup.avatar}"`;
 				let appendUser = '<li id="group-' + data.conversations_id + '">'
 					+ '<div class="user-contain" data-id="' + data.conversations_id + '" data-number="' + numberMember + '" data-name="' + matchedGroup.name + '" onclick="setGroup(this);">'
@@ -831,7 +1083,7 @@ function fetchGroup() {
 
 
 function searchFriendByKeyword(keyword) {
-	fetch("http://localhost:3000/friends?sender=" + username)
+	fetch(hostname + "friends?sender=" + username)
 		.then(function(data) {
 			return data.json();
 		})
@@ -840,14 +1092,17 @@ function searchFriendByKeyword(keyword) {
 			document.querySelector(".left-side .list-user").innerHTML = "";
 			data.forEach(function(data) {
 				var status = "";
-				if (data.status) status = "online";
+				if (data.online) status = "online";
 				else status = "";
+
+				let avatar_withName = alluser.find(user => user.username === data.receiver);
+				let src_avatar = server_name + "avatar/" + data.receiver + "/" + avatar_withName.avatar;
 
 				let appendUser = '<li id="' + data.receiver + '" onclick="setReceiver(this);">'
 					+ '<div class="user-contain">'
 					+ '<div class="user-img">'
 					+ '<img id="img-' + data.receiver + '"'
-					+ ' src="https://www.kkday.com/vi/blog/wp-content/uploads/chup-anh-dep-bang-dien-thoai-25.jpg"'
+					+ ' src="' + src_avatar + '"'
 					+ 'alt="Image of user">'
 					+ '<div id="status-' + data.receiver + '" class="user-img-dot ' + status + '"></div>'
 					+ '</div>'
@@ -880,41 +1135,271 @@ function handleResponsive() {
 
 }
 
-/*
-function searchMemberByKeyword(ele) {
-	let keyword = ele.value;
-	fetch(hostname + "friends?username=" + username + "&keyword=" + keyword + "&c)
+function searchNotFriendByKeyword(keyword) {
+	fetch(hostname + "friends?sender=" + username)
 		.then(function(data) {
 			return data.json();
 		})
 		.then(data => {
+			relationship = data;
+		});
+	fetch(hostname + "user")
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			console.log(relationship);
+			document.querySelector(".left-side .list-user").innerHTML = "";
+			data.forEach(function(data) {
+				console.log(data);
+				//var status = "";
+				//if (data.online) status = "online";
+				//else status = "";
 
+				const isUserInFriends = relationship.some(friend => friend.receiver === data.username);
+				if (!isUserInFriends && data.username !== username && data.username.includes(keyword)) {
+					console.log(isUserInFriends);
+					var status;
+					let src_avatar = server_name + 'avatar/' + data.username + '/' + data.avatar;
+					if (data.online == 1) status = 'online';
+					else status = '';
+					let appendUser = '<li id="' + data.username + '" onclick="setReceiver(this);">'
+						+ '<div class="user-contain">'
+						+ '<div class="user-img">'
+						+ '<img id="img-' + data.username + '"'
+						+ ' src="' + src_avatar + '"'
+						+ 'alt="Image of user">'
+						+ '<div id="status-' + data.username + '" class="user-img-dot ' + status + '"></div>'
+						+ '</div>'
+						+ '<div class="user-info">'
+						+ '<span class="user-name">' + data.username + '</span>'
+						+ '</div>'
+						+ '</div>'
+						+ '</li>';
+					document.querySelector(".left-side .list-user").innerHTML += appendUser;
+				}
+
+
+			});
+		});
+}
+
+
+function searchUser(ele) {
+	if (typeChat == "user") {
+		searchNotFriendByKeyword(ele.value);
+	} else {
+		if (ele.value == "") {
+			fetchGroup();
+		} else {
+			searchGroupByKeyword(ele.value);
+		}
+	}
+}
+
+
+function searchMemberByKeyword(ele) {
+	console.log(groupId);
+	let keyword = ele.value;
+	let memberGroup;
+
+	fetch(hostname + 'user')
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			alluser = data;
+		}).catch(ex => {
+			console.log(ex);
+		});
+
+	fetch(hostname + "conversations_users?conversations_id=" + groupId)
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			memberGroup = data;
+		}).catch(ex => {
+			console.log(ex);
+		});
+
+
+
+	fetch(hostname + "friends?sender=" + username + "&status=1")
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			console.log(memberGroup);
 			document.querySelector(".add-member-body .list-user ul").innerHTML = "";
 			data.forEach(function(data) {
 				if (data.online) status = "online";
 				else status = "";
+				//console.log(data);
+
 
 				let check = "";
-				if (listUserAdd.indexOf(data.username) >= 0) check = "checked";
+				if (listUserAdd.indexOf(data.receiver) >= 0) check = "checked";
+				let userNotInGroup = memberGroup.find(member => member.username === data.receiver);
+				let userCurrent = alluser.find(user => user.username === data.receiver);
+				let src_avatar = server_name + "avatar/" + data.receiver + "/" + userCurrent.avatar;
 
-				let appendUser = '<li>'
-					+ '<input id="member-' + data.username + '" type="checkbox" ' + check + ' value="' + data.username + '" onchange="addUserChange(this)">'
-					+ '<label for="member-' + data.username + '">'
-					+ '<div class="user-contain">'
-					+ '<div class="user-img">'
-					+ '<img '
-					+ ' src="http://' + window.location.host + '/files/' + data.username + '/' + data.avatar + '"'
-					+ 'alt="Image of user">'
-					+ '</div>'
-					+ '<div class="user-info">'
-					+ '<span class="user-name">' + data.username + '</span>'
-					+ '</div>'
-					+ '</div>'
-					+ '</label>'
-					+ '<div class="user-select-dot"></div>'
-					+ '</li>';
-				document.querySelector(".add-member-body .list-user ul").innerHTML += appendUser;
+				if (!userNotInGroup) {
+					let appendUser = '<li>'
+						+ '<input id="member-' + data.receiver + '" type="checkbox" ' + check + ' value="' + data.receiver + '" onchange="addUserChange(this)">'
+						+ '<label for="member-' + data.receiver + '">'
+						+ '<div class="user-contain">'
+						+ '<div class="user-img">'
+						+ '<img '
+						+ ' src="' + src_avatar + '"'
+						+ 'alt="Image of user">'
+						+ '</div>'
+						+ '<div class="user-info">'
+						+ '<span class="user-name">' + data.receiver + '</span>'
+						+ '</div>'
+						+ '</div>'
+						+ '</label>'
+						+ '<div class="user-select-dot"></div>'
+						+ '</li>';
+					document.querySelector(".add-member-body .list-user ul").innerHTML += appendUser;
+				}
+
 			});
 		});
 }
-*/
+
+function addUserChange(e) {
+	if (e.checked) {
+		listUserAdd.push(e.value);
+	} else {
+		let index = listUserAdd.indexOf(e.value);
+		listUserAdd.splice(index, 1);
+	}
+	console.log(listUserAdd);
+
+}
+function addMember(e) {
+	e.preventDefault();
+
+	let object = new Object();
+	object.name = groupName;
+	object.id = groupId;
+	object.users = [];
+
+
+	listUserAdd.forEach(function(username) {
+		console.log(username);
+		const url = hostname + "conversations_users";
+		const xhttp = new XMLHttpRequest();
+		xhttp.open("POST", url);
+		var data = {
+			conversations_id: Number(groupId),
+			username: username,
+			is_admin: false
+		}
+		xhttp.responseType = 'json';
+		if (data) { xhttp.setRequestHeader('Content-Type', 'application/json'); }
+		xhttp.send(JSON.stringify(data));
+		toggleAllModal();
+	});
+}
+
+function fetchUser() {
+	fetch(hostname + 'user')
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			alluser = data;
+		}).catch(ex => {
+			console.log(ex);
+		});
+
+	fetch(hostname + "conversations_users?conversations_id=" + groupId)
+		.then(data => data.json())
+		.then(users => {
+			document.querySelector(".manage-member-body .list-user ul").innerHTML = "";
+
+			if (users.length == 1) {
+				document.querySelector(".manage-member-body .list-user ul").innerHTML = "No members in group";
+				document.querySelector(".manage-member-body .list-user ul").style = "text-align: center; font-size: 1.8rem;";
+			} else {
+				document.querySelector(".manage-member-body .list-user ul").style = "";
+			}
+
+			users.forEach(function(data) {
+				if (data.username == username) return;
+
+				let userOf = alluser.find(user => user.username === data.username);
+				let src_avatar = server_name + "avatar/" + data.username + "/" + userOf.avatar;
+				let appendUser = '<li>'
+					+ '<div class="user-contain">'
+					+ '<div class="user-img">'
+					+ '<img '
+					+ ' src="' + src_avatar + '"'
+					+ 'alt="Image of user">'
+					+ '</div>'
+					+ '<div class="user-info" style="flex-grow: 1;">'
+					+ '<span class="user-name">' + data.username + '</span>'
+					+ '</div>';
+
+				if (!data.is_admin)
+					appendUser += '<div class="user-delete" style="font-weight: 700;" data-username="' + data.username + '" onclick="deleteMember(this)">Delete</div>'
+
+				appendUser += '</div></li>';
+
+				document.querySelector(".manage-member-body .list-user ul").innerHTML += appendUser;
+			});
+
+		})
+		.catch(ex => console.log(ex));
+}
+
+function deleteMember(ele) {
+	let username = ele.getAttribute("data-username");
+	let deleteId;
+
+	fetch(hostname + "conversations_users?username=" + username + "&conversations_id=" + groupId)
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			console.log(data[0].id);
+			deleteId = data[0].id;
+
+			fetch(hostname + "conversations_users/" + data[0].id, {
+				method: 'delete'
+			})
+				.then(function(data) {
+					return data.json();
+				})
+				.then(function(data) {
+					toggleAllModal();
+
+				})
+				.catch(ex => console.log(ex));
+		}).catch(ex => {
+			console.log(ex);
+		});
+	/*
+	fetch("http://" + window.location.host + "/conversations-rest-controller?conversationId=" + groupId + "&username=" + username, {
+		method: 'delete'
+	})
+		.then(function(data) {
+			return data.json();
+		})
+		.then(function(data) {
+
+			numberMember -= 1;
+
+			let inviteNumber = document.querySelector(".total-invite-user");
+			if (inviteNumber) inviteNumber.innerHTML = numberMember + " paticipants";
+
+			toggleAllModal();
+		})
+		.catch(ex => console.log(ex));
+		
+	*/
+
+	
+}

@@ -8,7 +8,7 @@ public class GroupDAO {
 	public Connection takeConnect() {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/chat", "root", "");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/chat", "root", "123456");
 			return con;
 		} catch (Exception e) {
 			// TODO: handle exception
