@@ -16,6 +16,7 @@ import java.util.List;
 public class LoginController {
 	@RequestMapping(value = "/chat", method = RequestMethod.POST)
 	public ModelAndView handleLoginForm(@RequestParam String username, @RequestParam String password) {
+		//System.out.println("goto logincontroller");
 		System.out.println(username + " " + password);
 		DAO dao = new DAO();
 		User u = dao.checkLogin(username, password);

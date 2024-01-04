@@ -3,8 +3,12 @@ package com.demo.controller;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
+
+import com.demo.dao.DAO;
+import com.demo.dao.UserDAO;
+import com.demo.model.User;
 
 @Controller
 @RequestMapping("/users")
@@ -37,9 +41,18 @@ public class UserController {
 	}
 	
 	@GetMapping("/update")
-	public ModelAndView updateUser() {
-		ModelAndView mav = new ModelAndView("user-form");
-
+	public ModelAndView updateUser(@RequestParam String username) {
+		ModelAndView mav = new ModelAndView("updateuser");
+		
+		
+		//System.out.println(username);
+		UserDAO dao = new UserDAO();
+		User user = dao.checkUser(username);
+		//System.out.println(user);
+		mav.addObject("linkimage", "http://192.168.225.1/file/avatar/" + username + "/" + user.avatar);
+		mav.addObject("username", username);
+		mav.addObject("oldavatar", user.avatar);
+		
 		String title = "Update User";
 		String description = "Update your information";
 		String status = "/update";

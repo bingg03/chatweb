@@ -40,7 +40,7 @@ public class DAO {
 				ps.setString(1, name);
 				rs = ps.executeQuery();
 				while (rs.next()) {
-					l.add(new User(rs.getString(1), rs.getString(2), rs.getString(3)));
+					l.add(new User(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)));
 				}
 			}
 			return l;
@@ -62,7 +62,7 @@ public class DAO {
 			ResultSet rs = ps.executeQuery();
 			
 			while (rs.next()) {
-				return new User(username, password, rs.getString(3));
+				return new User(username, password, rs.getString(3), rs.getString(4));
 			}
 		} catch (Exception e) {
 			// TODO: handle exception
@@ -95,7 +95,8 @@ public class DAO {
 	
 	public static void main(String[] args) {
 		DAO dao = new DAO();
-		List<String> list = dao.getAllUserFromGroup("1");
-		System.out.println(list);
+		User u = dao.checkLogin("admin", "123");
+		System.out.println(u);
+		System.out.println(u.online == null);
 	}
 }

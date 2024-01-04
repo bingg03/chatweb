@@ -117,10 +117,11 @@ public class WebSocket {
 			
 			
 		} else {
-			
+			//gan name cho session
 			if (message.startsWith("#")) {
 				String username = message.substring(1).trim();
 				session.getUserProperties().put("username", username);
+			//nhan file va upload file
 			} else if (message.startsWith("filename")) {
 				String name = message.substring(message.indexOf(':') + 1);
 				if (!name.equals("end")) {
@@ -141,6 +142,7 @@ public class WebSocket {
 					}
 				}
 			} else {
+				//tao folder avatar 
 				if(message.startsWith("?")) {
 			        String processedString = message.substring(1);
 			        
@@ -151,6 +153,7 @@ public class WebSocket {
 			        avatar = avatar.substring(12);
 			        UserService userService = new UserService();
 			        userService.createUserFolder(username, password, avatar);
+			    //tao group
 				} else if(message.startsWith("@")) {
 					System.out.println(message);
 					String processedString = message.substring(1);
@@ -165,13 +168,76 @@ public class WebSocket {
 			        groupDAO.addGroup(Integer.parseInt(groupId), groupName, "group.png");
 			        //add user admin
 			        groupDAO.addUserWithAdmin(username, Integer.parseInt(groupId));
+			    //delete group
 				} else if(message.startsWith("$")) {
 					String processedString = message.substring(1);
 			        int groupId = Integer.parseInt(processedString);
 			        GroupDAO groupDAO = new GroupDAO();
 			        groupDAO.deleteGroup(groupId);
 			        groupDAO.deleteMemberGroup(groupId);
+			    //add friend
+				} else if(message.startsWith("&")) {
+					System.out.println(message);
+					String processedString = message.substring(1);
+			        
+			        String[] parts = processedString.split(",");
+			        String username = parts[0];
+			        String receiver = parts[1];
+			        FriendDAO friendDAO = new FriendDAO();
+			        friendDAO.addFriend(username, receiver);
+			        friendDAO.getFriend(receiver, username);
+				//accept friend
+				} else if(message.startsWith("!")) {
+					System.out.println(message);
+					String processedString = message.substring(1);
+			        
+			        String[] parts = processedString.split(",");
+			        String username = parts[0];
+			        String receiver = parts[1];
+			        FriendDAO friendDAO = new FriendDAO();
+			        friendDAO.acceptFriend(username, receiver);
+			        friendDAO.acceptFriend(receiver, username);
+				//them member
+				} else if(message.startsWith("(")) {
+					System.out.println(message);
+					String processedString = message.substring(1);
+			        
+			        String[] parts = processedString.split(",");
+			        String username = parts[0];
+			        String groupId = parts[1];
+			        GroupDAO groupDAO = new GroupDAO();
+			        groupDAO.addMember(username, Integer.parseInt(groupId));
+				//delete member
+				} else if(message.startsWith(")")) {
+					System.out.println(message);
+					String processedString = message.substring(1);
+			        
+			        String[] parts = processedString.split(",");
+			        String username = parts[0];
+			        String groupId = parts[1];
+			        GroupDAO groupDAO = new GroupDAO();
+			        groupDAO.deleteMember(username, Integer.parseInt(groupId));
+				} else if(message.startsWith("+")) {
+					String username = message.substring(1);
+					//set online database
+					UserDAO userDAO = new UserDAO();
+					userDAO.setOnline(username);
+					//send full user
+					for (Session client : sessions) {		
+						client.getBasicRemote().sendText(message);
+	    			}
+					
+				} else if(message.startsWith("-")) {
+					String username = message.substring(1);
+					//set offline database
+					UserDAO userDAO = new UserDAO();
+					userDAO.setOffline(username);
+					//send full user
+					for (Session client : sessions) {		
+						client.getBasicRemote().sendText(message);
+	    			}
 				}
+				
 			}
 		}
 	}

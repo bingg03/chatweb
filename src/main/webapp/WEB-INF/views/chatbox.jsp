@@ -90,10 +90,10 @@
 					<i class="fa fa-plus-circle"></i>
 				</div>
 				<h2>
-					<a href="<c:url value="/users/update"/>"
+					<a href="<c:url value="/users/update?username=${user.username}"/>"
 						style="text-decoration: none; color: white; margin-right: 3rem;">Welcome
-						${user.username}</a> : <a href="<c:url value="/users/logout"/>"
-						style="text-decoration: none; color: white; margin-left: 3rem;">Logout</a>
+						${user.username}</a> : <a style="text-decoration: none; color: white; margin-left: 3rem;" 
+						onclick="LogOut()">Logout</a>
 				</h2>
 				<div class="tab-control">
 					<i class="fa fa-comment active" onclick="chatOne(this)"></i> <i
@@ -110,9 +110,9 @@
 								<div class="user-contain">
 									<div class="user-img">
 										<img id="img-${friend.username}"
-											src="http://localhost/file/avatar/${friend.username}/${friend.avatar}"
+											src="http://192.168.225.1/file/avatar/${friend.username}/${friend.avatar}"
 											alt="Image of user">
-										<div id="status-${friend.username}" class="user-img-dot online"></div>
+										<div id="status-${friend.username}" class="user-img-dot ${friend.online}"></div>
 									</div>
 									<div class="user-info">
 										<span class="user-name">${friend.username}</span>

@@ -39,4 +39,24 @@
     <servlet-name>RegisterServlet</servlet-name>
     <url-pattern>/RegisterServlet</url-pattern>
   </servlet-mapping>
+  <servlet>
+    <description></description>
+    <display-name>UpdateUserController</display-name>
+    <servlet-name>UpdateUserController</servlet-name>
+    <servlet-class>com.demo.controller.UpdateUserController</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>UpdateUserController</servlet-name>
+    <url-pattern>/updateuser</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <description></description>
+    <display-name>GotoUpdateUser</display-name>
+    <servlet-name>GotoUpdateUser</servlet-name>
+    <servlet-class>com.demo.controller.GotoUpdateUser</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>GotoUpdateUser</servlet-name>
+    <url-pattern>/gotoupdateuser</url-pattern>
+  </servlet-mapping>
 </web-app>

@@ -71,6 +71,50 @@ public class GroupDAO {
 			
 		}
 	}
+	public void addMember(String username, int groupId) {
+		String query = "insert into conversations_users(conversations_id, username, is_admin) values (?, ?, ?)";
+		
+		try {
+			Connection con = takeConnect();
+			PreparedStatement ps = con.prepareStatement(query);
+			ps.setInt(1, groupId);
+			ps.setString(2, username);
+			ps.setString(3, "0");
+			ps.executeUpdate();
+			
+		} catch (Exception e) {
+			
+		}
+	}
+	public void deleteMember(String username, int groupId) {
+		String query = "delete from conversations_users where conversations_id = ? and username = ?";
+		
+		try {
+			Connection con = takeConnect();
+			PreparedStatement ps = con.prepareStatement(query);
+			ps.setInt(1, groupId);
+			ps.setString(2, username);
+			ps.executeUpdate();
+			
+		} catch (Exception e) {
+			
+		}
+	}
+	public void updateInfoMember(String oldusername, String username) {
+		String query = "update conversations_users set username = ? where username = ?";
+		
+		try {
+			Connection con = takeConnect();
+			PreparedStatement ps = con.prepareStatement(query);
+			ps.setString(1, username);
+			ps.setString(2, oldusername);
+			ps.executeUpdate();
+			
+		} catch (Exception e) {
+			
+		}
+	}
+	
 	public static void main(String[] args) {
 		
 	}

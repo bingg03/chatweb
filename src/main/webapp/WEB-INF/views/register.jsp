@@ -21,7 +21,7 @@
 				<h3 class="tab-control-btn register">Enter your information</h3>
 			</div>
 			<div class="register-form form active">
-				<form action="<c:url value="/registerservlet" />"
+				<form action=""
 					enctype="multipart/form-data" method="POST">
 
 					<input type="text" class="txt-input border"
@@ -48,68 +48,69 @@
 	<script type="text/javascript"
 		src="<c:url value="/template/web/js/user-form.js" />" charset="utf-8"></script>
 	<script type="text/javascript">
-		document.addEventListener("DOMContentLoaded", function() {
-			// Lấy ra biểu mẫu
-			var form = document.querySelector('.register-form form');
+	document.addEventListener("DOMContentLoaded", function() {
+		// Lấy ra biểu mẫu
+		var form = document.querySelector('.register-form form');
 
-			// Thêm sự kiện submit cho biểu mẫu
-			form.addEventListener('submit', function(event) {
-				// Ngăn chặn hành động mặc định của biểu mẫu (tránh tải lại trang)
-				event.preventDefault();
+		// Thêm sự kiện submit cho biểu mẫu
+		form.addEventListener('submit', function(event) {
+			// Ngăn chặn hành động mặc định của biểu mẫu (tránh tải lại trang)
+			event.preventDefault();
 
-				// Lấy giá trị từ trường username
-				var username = form.querySelector('[name="username"]').value;
+			// Lấy giá trị từ trường username
+			var username = form.querySelector('[name="username"]').value;
 
-				// Lấy giá trị từ trường password
-				var password = form.querySelector('[name="password"]').value;
+			// Lấy giá trị từ trường password
+			var password = form.querySelector('[name="password"]').value;
 
-				// Lấy giá trị từ trường avatar
-				var avatar = form.querySelector('[name="avatar"]').value;
+			// Lấy giá trị từ trường avatar
+			var avatar = form.querySelector('[name="avatar"]').value;
 
-				// Hiển thị giá trị trên console
-				console.log('Username: ' + username);
-				console.log('Password: ' + password);
-				console.log('Avatar: ' + avatar);
-				
-				var socket = new WebSocket('ws://localhost:8080/spring-mvc/ChatSocket');
-				// Kiểm tra nếu chưa có kết nối WebSocket hoặc đang ở trạng thái CONNECTING
-		        if (!socket || socket.readyState === WebSocket.CONNECTING) {
-		            // Tạo đối tượng WebSocket
-		            socket = new WebSocket('ws://localhost:8080/spring-mvc/ChatSocket');
+			// Hiển thị giá trị trên console
+			console.log('Username: ' + username);
+			console.log('Password: ' + password);
+			console.log('Avatar: ' + avatar);
+			
+			
+			var completeAvatar = avatar.substring(12);
+			
+			var object = {
+					username: username,
+					password: password,
+					avatar: completeAvatar,
+					online: 0
+			}
+			fetch("https://7c75lr-3000.csb.app/user", {
+			    method: "post",
+			    cache: 'no-cache',
+			    headers: {
+			        'Content-Type': 'application/json;charset=utf-8'
+			    },
+			    body: JSON.stringify(object)
+			})
+			    .then(function(response) {
+			        if (!response.ok) {
+			            throw new Error('Network response was not ok');
+			        }
+			        return response.json();
+			    })
+			    .then(function(data) {
+			        console.log(data);
+			        var redirectURL = "<c:url value='/registerservlet' />";
+			        redirectURL += '?username=' + encodeURIComponent(username) +
+			                       '&password=' + encodeURIComponent(password) +
+			                       '&avatar=' + encodeURIComponent(avatar);
 
-		            // Xử lý sự kiện khi WebSocket đã kết nối
-		            socket.onopen = function(event) {
-		                // Gửi dữ liệu thông điệp sau khi kết nối thành công
-		                socket.send('?' + username + ',' + password + ',' + avatar);
-
-		                var redirectURL = "<c:url value='/registerservlet' />";  // Chắc chắn rằng cú pháp JSTL này hoạt động như mong đợi
-
-		                // Tạo URL với tham số
-		                redirectURL += '?username=' + encodeURIComponent(username) +
-		                               '&password=' + encodeURIComponent(password) +
-		                               '&avatar=' + encodeURIComponent(avatar);
-
-		                // Chuyển hướng tới URL mới
-		                window.location.href = redirectURL;
-		            };
-		        } else if (socket.readyState === WebSocket.OPEN) {
-		            // Nếu WebSocket đã ở trạng thái OPEN, gửi dữ liệu thông điệp
-		            socket.send('?' + username + ',' + password + ',' + avatar);
-
-		         // Thêm chúng vào URL
-		            var redirectURL = "<c:url value='/registerservlet' />";  // Chắc chắn rằng cú pháp JSTL này hoạt động như mong đợi
-
-		            // Tạo URL với tham số
-		            redirectURL += '?username=' + encodeURIComponent(username) +
-		                           '&password=' + encodeURIComponent(password) +
-		                           '&avatar=' + encodeURIComponent(avatar);
-
-		            // Chuyển hướng tới URL mới
-		            window.location.href = redirectURL;
-		        }
-				
-			});
+			        window.location.href = redirectURL;
+			    })
+			    .catch(function(error) {
+			        console.error('There has been a problem with your fetch operation:', error);
+			    });
+	        
+	          
+			
 		});
+	});
 	</script>
 </body>
 </html>

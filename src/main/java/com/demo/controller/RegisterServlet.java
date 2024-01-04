@@ -23,6 +23,7 @@ import javax.websocket.Session;
 
 import com.demo.dao.UserDAO;
 import com.demo.model.User;
+import com.demo.service.UserService;
 import com.demo.websocket.WebSocket;
 
 
@@ -43,20 +44,24 @@ public class RegisterServlet extends HttpServlet {
 		String username = request.getParameter("username");
 		String password = request.getParameter("password");
 		String avatar = request.getParameter("avatar");
+		System.out.println(username + "," + password + "," + avatar);
 		
 		UserDAO userDAO = new UserDAO();
 		User user = userDAO.checkUser(username);
 		
 		if(user != null) {
-			request.getRequestDispatcher("/users/register").forward(request, response);
-			
+			//request.getRequestDispatcher("/users/register").forward(request, response);
+			response.sendRedirect(request.getContextPath() + "/users/register");
 		} else {
 			//dk o day
 			avatar = avatar.substring(12);
 			
 			//System.out.println(username + " " + password + " " + avatar);
 			userDAO.addUser(username, password, avatar);
-			request.getRequestDispatcher("login").forward(request, response);
+			UserService userService = new UserService();
+	        userService.createUserFolder(username, password, avatar);
+			response.sendRedirect(request.getContextPath() + "/login");
+			//request.getRequestDispatcher("login").forward(request, response);
 		}
 	}
 

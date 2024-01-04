@@ -1,7 +1,7 @@
-var socket = new WebSocket('ws://localhost:8080/spring-mvc/ChatSocket');
+var socket = new WebSocket('ws://192.168.225.1:8080/spring-mvc/ChatSocket');
 
-var hostname = 'http://localhost:3000/';
-var server_name = 'http://localhost/file/';
+var hostname = 'https://7c75lr-3000.csb.app/';
+var server_name = 'http://192.168.225.1/file/';
 
 var receiver = null;
 var username = null;
@@ -40,11 +40,48 @@ socket.onopen = function(event) {
 	username = document.getElementById("username").textContent;
 	userAvatar = document.getElementById("userAvatar").textContent;
 
+	//patch
+	fetch(hostname + "user")
+				.then(function(data) {
+					return data.json();
+				})
+				.then(data => {
+					
+					const updateData = {
+						online: 1
+					};
+					
+					
+					data.forEach(user => {
+			            // Kiểm tra điều kiện và thực hiện PATCH
+			            if (user.username === username){
+			                fetch(hostname + "user/" + user.id, {
+			                    method: 'PATCH',
+			                    headers: {
+			                        'Content-Type': 'application/json;charset=utf-8'
+			                    },
+			                    body: JSON.stringify(updateData)
+			                })
+			                    .then(response => response.json())
+			                    .then(updatedData => {
+			                        //console.log(`PATCH successful for message with ID ${message.id}`);
+			                    })
+			                    .catch(error => {
+			                        //console.error(`Error PATCHing message with ID ${message.id}:`, error);
+			                    });
+			            }
+
+			        });
+				}).catch(ex => {
+					console.log(ex);
+				});
+	//
+	
 	console.log(username);
 	console.log(leftSide);
 	console.log(rightSide);
 	socket.send("#" + username);
-
+	socket.send("+" + username);
 	fetch(hostname + 'user')
 		.then(function(data) {
 			return data.json();
@@ -65,6 +102,50 @@ socket.onopen = function(event) {
 			console.log(ex);
 		});
 };
+
+function LogOut() {
+	username = document.getElementById("username").textContent;
+	console.log("-" + username);
+	socket.send("-" + username);
+	//patch
+	fetch(hostname + "user")
+				.then(function(data) {
+					return data.json();
+				})
+				.then(data => {
+					
+					const updateData = {
+						online: 0
+					};
+					
+					
+					data.forEach(user => {
+			            // Kiểm tra điều kiện và thực hiện PATCH
+			            if (user.username === username){
+			                fetch(hostname + "user/" + user.id, {
+			                    method: 'PATCH',
+			                    headers: {
+			                        'Content-Type': 'application/json;charset=utf-8'
+			                    },
+			                    body: JSON.stringify(updateData)
+			                })
+			                    .then(response => response.json())
+			                    .then(updatedData => {
+			                        //console.log(`PATCH successful for message with ID ${message.id}`);
+			                        window.location.href = "/spring-mvc/login";
+			                    })
+			                    .catch(error => {
+			                        //console.error(`Error PATCHing message with ID ${message.id}:`, error);
+			                    });
+			            }
+
+			        });
+				}).catch(ex => {
+					console.log(ex);
+				});
+	//
+	
+}
 
 socket.onmessage = function(event) {
 	var message = event.data;
@@ -117,6 +198,12 @@ socket.onmessage = function(event) {
 
 	} catch (error) {
 		console.error('Error parsing JSON:', error);
+		console.log(message);
+		if(message.startsWith("+")) {
+			setOnline(message.substring(1), true);
+		} else if(message.startsWith("-")) {
+			setOnline(message.substring(1), false);
+		}
 	}
 };
 
@@ -286,6 +373,7 @@ function makeFriend(rightSide) {
 
 function UserAddFriend() {
 	console.log("user dang add friend");
+	socket.send("&" + username + "," + receiver);
 	fetch(hostname + 'user')
 		.then(function(data) {
 			return data.json();
@@ -311,7 +399,7 @@ function UserAddFriend() {
 	if (data) { xhttp.setRequestHeader('Content-Type', 'application/json'); }
 	xhttp.send(JSON.stringify(data));
 
-
+	
 	const xhttp1 = new XMLHttpRequest();
 	xhttp1.open("POST", url);
 	var data1 = {
@@ -331,7 +419,7 @@ function UserAddFriend() {
 }
 function UserAcceptFriend() {
 	console.log("user dang accept friend");
-
+	socket.send("!" + username + "," + receiver);
 	let pair_friend1 = friends.find(friend => (friend.sender === username && friend.receiver === receiver));
 
 	let pair_friend2 = friends.find(friend => (friend.sender === receiver && friend.receiver === username));
@@ -438,7 +526,17 @@ function setGroup(element) {
 
 function sendMessage(e) {
 	e.preventDefault();
-
+	
+	fetch(hostname + 'user')
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			alluser = data;
+		}).catch(ex => {
+			console.log(ex);
+		});
+		
 	var inputText = document.getElementById("message").value;
 
 	if (inputText != '') {
@@ -480,7 +578,26 @@ function sendAttachments() {
 		messageContent = file.name.trim();
 		messageType = file.type;
 		var message = buildMessageToJson(messageContent, messageType);
-
+		
+		console.log(messageType);
+		console.log(messageContent);
+		
+		if(messageType.startsWith("image")) {
+			
+		} else {
+			socket.send('filename:' + messageContent);
+			var reader = new FileReader();
+			var rawData = new ArrayBuffer();
+			reader.loadend = function() {
+	
+			}
+			reader.onload = function(e) {
+				rawData = e.target.result;
+				socket.send(rawData);
+				socket.send('filename:end');
+			}
+			reader.readAsArrayBuffer(file);
+		}
 		/*
 		socket.send('filename:' + messageContent);
 		var reader = new FileReader();
@@ -498,7 +615,7 @@ function sendAttachments() {
 		*/
 		//socket.send(JSON.stringify(message));
 
-		console.log(messageContent);
+		
 		let src_file = server_name + messageContent;
 		if (messageType.startsWith("audio")) {
 			message.message = '<audio controls>'
@@ -660,7 +777,9 @@ function customLoadMessage(sender, message) {
 	else if (receiver == sender) {
 		msgDisplay += '">';
 	} else {
-		imgSrc = userAvatar;
+		console.log(userAvatar);
+		//console.log(userAvatar.substring(21));
+		imgSrc = server_name + "avatar/" + userAvatar.substring(21);
 		msgDisplay += ' right">';
 	}
 	return msgDisplay + '<div class="message-img">'
@@ -672,6 +791,7 @@ function customLoadMessage(sender, message) {
 }
 
 function customLoadMessageGroup(sender, groupIdFromServer, message, avatar) {
+	console.log(sender + "," + groupIdFromServer + "," + message + "," + avatar);
 	let imgSrc = server_name + "avatar/" + sender + "/" + avatar;
 	var msgDisplay = '<li>'
 		+ '<div class="message';
@@ -681,7 +801,8 @@ function customLoadMessageGroup(sender, groupIdFromServer, message, avatar) {
 	if (username != sender) {
 		msgDisplay += '">';
 	} else {
-		imgSrc = userAvatar;
+		//imgSrc = userAvatar;
+		imgSrc = server_name + "avatar/" + userAvatar.substring(21);
 		msgDisplay += ' right">';
 	}
 	return msgDisplay + '<div class="message-img">'
@@ -752,15 +873,7 @@ function loadMessages() {
 	xhttp.send();
 }
 
-function setOnline(username, isOnline) {
-	let ele = document.getElementById('status-' + username);
 
-	if (isOnline === true) {
-		ele.classList.add('online');
-	} else {
-		ele.classList.remove('online');
-	}
-}
 
 function displayFiles() {
 	attachFile = document.getElementById("attach");
@@ -845,6 +958,7 @@ function createGroup(e) {
 		name: groupName,
 		avatar: 'group.png'
 	}
+	
 	fetch(hostname + "conversations", {
 		method: "post",
 		cache: 'no-cache',
@@ -886,7 +1000,10 @@ function deleteGroup(ele) {
 	let grpId = ele.getAttribute("data-id");
 	console.log(grpId);
 	if (grpId == groupId) document.querySelector(".right-side").innerHTML = "";
+	let groupNumber = document.getElementById("group-" + grpId);
+	if (groupNumber) groupNumber.outerHTML = "";
 	socket.send('$' + grpId);
+	/*
 	fetch(hostname + "conversations/" + grpId, {
 		method: 'delete'
 	})
@@ -900,6 +1017,8 @@ function deleteGroup(ele) {
 
 		})
 		.catch(ex => console.log(ex));
+	*/
+		
 	//sua lai cai nay
 	var xhttp1 = new XMLHttpRequest();
 	xhttp1.onreadystatechange = function() {
@@ -958,6 +1077,15 @@ function resetChat() {
 	} else {
 		addGroupBtn.classList.remove("active");
 	}
+	fetch(hostname + 'user')
+		.then(function(data) {
+			return data.json();
+		})
+		.then(data => {
+			alluser = data;
+		}).catch(ex => {
+			console.log(ex);
+		});
 
 	fetch(hostname + 'friends')
 		.then(function(data) {
@@ -1092,10 +1220,15 @@ function searchFriendByKeyword(keyword) {
 			document.querySelector(".left-side .list-user").innerHTML = "";
 			data.forEach(function(data) {
 				var status = "";
-				if (data.online) status = "online";
-				else status = "";
-
+				//if (data.online) status = "online";
+				//else status = "";
+				//console.log(data.online + "," + status);
+				
 				let avatar_withName = alluser.find(user => user.username === data.receiver);
+				if (avatar_withName.online) status = "online";
+				else status = "";
+				console.log(avatar_withName);
+				console.log(status);
 				let src_avatar = server_name + "avatar/" + data.receiver + "/" + avatar_withName.avatar;
 
 				let appendUser = '<li id="' + data.receiver + '" onclick="setReceiver(this);">'
@@ -1289,6 +1422,7 @@ function addMember(e) {
 
 	listUserAdd.forEach(function(username) {
 		console.log(username);
+		socket.send("(" + username + "," + groupId);
 		const url = hostname + "conversations_users";
 		const xhttp = new XMLHttpRequest();
 		xhttp.open("POST", url);
@@ -1358,7 +1492,7 @@ function fetchUser() {
 function deleteMember(ele) {
 	let username = ele.getAttribute("data-username");
 	let deleteId;
-
+	socket.send(")" + username + "," + groupId);
 	fetch(hostname + "conversations_users?username=" + username + "&conversations_id=" + groupId)
 		.then(function(data) {
 			return data.json();
@@ -1402,4 +1536,14 @@ function deleteMember(ele) {
 	*/
 
 	
+}
+
+function setOnline(username, isOnline) {
+	let ele = document.getElementById('status-' + username);
+
+	if (isOnline === true) {
+		ele.classList.add('online');
+	} else {
+		ele.classList.remove('online');
+	}
 }

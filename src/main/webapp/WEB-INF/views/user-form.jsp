@@ -35,7 +35,7 @@
 					</c:choose>
 					 -->
 					<input type="text" class="txt-input border"
-								placeholder="Username1" name="username"> 
+								placeholder="Username" name="username"> 
 					 
 					<input type="password" class="txt-input border"
 						placeholder="Password" name="password"> <input
